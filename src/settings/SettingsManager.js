@@ -20,5 +20,5 @@ export class SettingsManager {
   update(patch){this.value=this.sanitize({...this.value,...patch});try{this.storage.setItem('ninjaRun.settings.v1',JSON.stringify(this.value));this.warning='';}
     catch{this.warning='瀏覽器無法保存設定，重新開啟後會使用預設值。';}return this.value;}
   calibrationFor(deviceId,aspect){const c=this.value.calibration;
-    return this.value.rememberCalibration&&c?.deviceId===deviceId&&Math.abs(c.aspect-aspect)<.08?c:null;}
+    return !!deviceId&&this.value.rememberCalibration&&c?.deviceId===deviceId&&Math.abs(c.aspect-aspect)<.08?c:null;}
 }

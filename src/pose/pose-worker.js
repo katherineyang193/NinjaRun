@@ -9,7 +9,7 @@ self.onmessage=async({data})=>{
       try{model=await PoseLandmarker.createFromOptions(files,options);}catch{options.baseOptions.delegate='CPU';model=await PoseLandmarker.createFromOptions(files,options);}
       self.postMessage({type:'ready'});
     }else if(data.type==='frame'){
-      try{const result=model.detectForVideo(data.frame,data.time);self.postMessage({type:'result',landmarks:result.landmarks?.[0]??null,time:data.time});}
+      try{const result=model.detectForVideo(data.frame,data.time);self.postMessage({type:'result',landmarks:result.landmarks?.[0]??null,time:data.time,session:data.session});}
       finally{data.frame.close();}
     }
   }catch(error){self.postMessage({type:'error',message:String(error.message??error)});}

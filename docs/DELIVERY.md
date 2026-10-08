@@ -86,4 +86,10 @@ Render FPS、Pose FPS、confidence、Hip X/Y、baseline X/Y、24 frames、motion
 
 ## 實際驗證紀錄
 
-本機測試與 Pages 公開驗證正在進行，尚未列為真人 Webcam 驗收完成。
+- 自動測試：35 項通過、0 失敗；包含 Worker 舊 session 結果隔離。`node --check` 通過，19 個公開靜態資源與相對 imports 存在。
+- 首次同步 commit：`b4a287daaddf0a72968f6d9759a95f109ff07a1c`，`feat: add ninja pose calibration and motion playground`，分支 `main`。本機 `git push` 因無登入認證失敗，改用既有 GitHub connector 建立 tree / commit 並以非 force 更新 ref。本機 checkpoint commits 保留在 `codex/local-checkpoint`，本機 `main` 跟隨遠端。
+- GitHub Motion checks：[成功](https://github.com/katherineyang193/NinjaRun/actions/runs/37796516655)。Pages 從 `main` 根目錄發佈，由使用者啟用設定；[首次 build / deployment 成功](https://github.com/katherineyang193/NinjaRun/actions/runs/37796764981)。
+- 公開首頁已在內建 Chromium 瀏覽器實際開啟，可讀到標題、招式卡、家長設定與開發面板。原版模型載入成功（COMPATIBILITY）；修正 MediaPipe WASM loader 所需 classic Worker 後，本機載入成功（WORKER），增加空白影格推論測試；最新公開版本再次驗證。
+- 本機 Refresh 後一分鐘、非鏡像、關閉跳躍等設定仍保留。公開版本同樣進行保存／Refresh 檢查。
+- 公開 HTTPS 確實發出相機請求，但自動瀏覽器未回應相機權限，30 秒後顯示可重試提示；未得到真人 Webcam 影格。因此「HTTPS Webcam 成功啟動、真人兩手校正、真人五招、不同鏡頭方向與實測 Pose FPS」仍未完成驗收，不能以合成測試替代。
+- 未修改或同步 CuteDart / GameHome；NinjaRun 有獨立公開網址與可修改 GameHome 返回入口。

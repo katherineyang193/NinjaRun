@@ -114,6 +114,7 @@ function frame(now){
     $('cameraOverlay').textContent=phase==='PLAYING'?(trackingPaused?'回到框框裡～':'你的左 ←　→ 你的右'):$('mainMessage').textContent;
     if(!$('debugPanel').hidden){const v=x=>Number.isFinite(x)?x.toFixed(3):'—';$('debugValues').textContent=[
       `Render FPS: ${renderFps.toFixed(1)}   Pose FPS: ${pose.fps.toFixed(1)}   Engine: ${pose.mode}`,
+      pose.fallbackReason?`Worker fallback: ${pose.fallbackReason}`:'',
       `Pose confidence: ${v(features?.confidence)}   Hip X: ${v(features?.hipX)}   Hip Y: ${v(features?.hipY)}`,
       `baseline X: ${v(baseline?.baselineHipX)}   baseline Y: ${v(baseline?.baselineHipY)}   average frames: ${baseline?.frames??0}`,
       `motionState: ${motion.state}   runState: ${motion.runState}   runIntensity: ${v(motion.runIntensity)}`,
@@ -133,8 +134,10 @@ $('modelTestBtn').addEventListener('click',async()=>{
   if(camera.active||phase==='LOADING'){$('selfTestResult').textContent='鏡頭已在使用動作模型，請先結束練習。';return;}
   const token=epoch;$('modelTestBtn').disabled=true;$('startBtn').disabled=true;$('selfTestResult').textContent='正在檢查 Pose 模型…';
   let timer;try{await Promise.race([pose.initialize(),new Promise((_,reject)=>{timer=setTimeout(()=>reject(new Error('timeout')),60000);})]);
-    if(token===epoch)$('selfTestResult').textContent=`Pose 模型載入成功 ✓ · ${pose.mode}`;
-  }catch{if(token===epoch)$('selfTestResult').textContent='Pose 模型載入失敗，請檢查 CDN／模型網址是否可連線。';}
+    const probe=document.createElement('canvas');probe.width=64;probe.height=64;probe.getContext('2d').fillRect(0,0,64,64);
+    await pose.probe(probe);
+    if(token===epoch)$('selfTestResult').textContent=`Pose 模型載入與推論成功 ✓ · ${pose.mode}（空白測試影格）`;
+  }catch{if(token===epoch)$('selfTestResult').textContent='Pose 模型載入或推論失敗，請檢查 CDN／模型網址是否可連線。';}
   finally{clearTimeout(timer);pose.close();$('modelTestBtn').disabled=false;$('startBtn').disabled=false;}
 });
 $('settingsBtn').addEventListener('click',()=>{for(const key of ['mirrorMode','difficulty','duration','gameHomeUrl'])$(key).value=settings.value[key];

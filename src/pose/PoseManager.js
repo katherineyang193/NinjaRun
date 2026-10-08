@@ -6,12 +6,13 @@ export class PoseManager {
   constructor({onResult,onError,onStatus=()=>{}}) {
     this.onResult=onResult;this.onError=onError;this.onStatus=onStatus;
     this.worker=null;this.model=null;this.running=false;this.epoch=0;this.timer=null;
-    this.mode='OFF';this.lastVideoTime=-1;this.fps=0;this.lastResultTime=null;
+    this.mode='OFF';this.lastVideoTime=-1;this.fps=0;this.lastResultTime=null;this.fallbackReason='';
   }
   async initialize() {
-    this.close();const epoch=this.epoch;this.onStatus('正在載入動作小幫手…');
+    this.close();this.fallbackReason='';const epoch=this.epoch;this.onStatus('正在載入動作小幫手…');
     try {
-      const worker=new Worker(new URL('./pose-worker.js',import.meta.url),{type:'module'});this.worker=worker;
+      // Tasks Vision's WASM loader uses importScripts, which needs a classic Worker.
+      const worker=new Worker(new URL('./pose-worker.js',import.meta.url));this.worker=worker;
       await new Promise((resolve,reject)=>{
         const timeout=setTimeout(()=>reject(new Error('worker loading timeout')),25000);
         worker.onmessage=e=>{if(e.data.type==='ready'){clearTimeout(timeout);resolve();}else if(e.data.type==='error'){clearTimeout(timeout);reject(new Error(e.data.message));}};
@@ -22,7 +23,7 @@ export class PoseManager {
       this.mode='WORKER';this.onStatus('動作小幫手準備好了 ✓');return;
     }catch(error){
       if(epoch!==this.epoch)throw error;
-      this.worker?.terminate();this.worker=null;this.onStatus('正在切換相容模式…');
+      this.fallbackReason=String(error.message);this.worker?.terminate();this.worker=null;this.onStatus('正在切換相容模式…');
     }
     const {PoseLandmarker,FilesetResolver}=await import(VISION_URL);
     const files=await FilesetResolver.forVisionTasks(WASM_URL);
@@ -34,9 +35,9 @@ export class PoseManager {
     this.model=model;this.mode='COMPATIBILITY';this.onStatus('動作小幫手準備好了 ✓');
   }
   start(video) {
-    this.stop();this.running=true;const epoch=this.epoch;this.lastVideoTime=-1;this.lastResultTime=null;
+    this.stop();this.running=true;const epoch=this.epoch;this.lastVideoTime=-1;this.lastResultTime=null;this.fps=0;
     if(this.worker){this.worker.onmessage=e=>{if(!this.running||epoch!==this.epoch)return;
-      if(e.data.type==='result'){this.result(e.data.landmarks,e.data.time);this.schedule(()=>tick(),0);}
+      if(e.data.type==='result'&&e.data.session===epoch){this.result(e.data.landmarks,e.data.time);this.schedule(()=>tick(),Math.max(0,40-(performance.now()-e.data.time)));}
       else if(e.data.type==='error'){this.fail(new Error(e.data.message));}
     };this.worker.onerror=()=>this.fail(new Error('動作小幫手暫時中斷，請重新開始。'));}
     const tick=async()=>{
@@ -46,12 +47,30 @@ export class PoseManager {
       try{
         if(this.worker){const frame=await createImageBitmap(video);
           if(!this.running||epoch!==this.epoch){frame.close();return;}
-          this.worker.postMessage({type:'frame',frame,time},[frame]);
+          this.worker.postMessage({type:'frame',frame,time,session:epoch},[frame]);
           this.timer=setTimeout(()=>this.fail(new Error('動作小幫手沒有回應，請重新開始。')),5000);
         }else{const result=this.model.detectForVideo(video,time);this.result(result.landmarks?.[0]??null,time);this.schedule(tick,Math.max(30,65-(performance.now()-time)));}
       }catch(error){this.fail(error);}
     };
     tick();
+  }
+  async probe(source) {
+    if(this.running)throw new Error('tracking is active');
+    const time=performance.now();
+    if(this.model){const result=this.model.detectForVideo(source,time);return {poses:result.landmarks.length};}
+    if(!this.worker)throw new Error('model is not ready');
+    const frame=await createImageBitmap(source),session=this.epoch;
+    return new Promise((resolve,reject)=>{
+      const timeout=setTimeout(()=>reject(new Error('inference timeout')),5000);
+      this.worker.onmessage=({data})=>{
+        if(data.session!==session&&data.type!=='error')return;
+        clearTimeout(timeout);
+        if(data.type==='error')reject(new Error(data.message));
+        else if(data.type==='result')resolve({poses:data.landmarks?1:0});
+      };
+      this.worker.onerror=()=>{clearTimeout(timeout);reject(new Error('worker inference failed'));};
+      this.worker.postMessage({type:'frame',frame,time,session},[frame]);
+    });
   }
   schedule(fn,delay){clearTimeout(this.timer);this.timer=setTimeout(fn,delay);}
   result(landmarks,time){clearTimeout(this.timer);if(this.lastResultTime!==null)this.fps=.8*this.fps+.2*1000/(time-this.lastResultTime);this.lastResultTime=time;this.onResult(landmarks,time);}

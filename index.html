@@ -1,0 +1,61 @@
+<!doctype html>
+<html lang="zh-Hant">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#f2f6ee">
+  <meta name="description" content="小忍者衝衝衝：用自己的身體跑、跳、蹲、左右閃。Ninja Run v0.1 動作練習場。">
+  <title>Ninja Run · 小忍者衝衝衝</title>
+  <link rel="icon" href="./assets/ninja.svg" type="image/svg+xml">
+  <link rel="stylesheet" href="./src/ui/style.css">
+</head>
+<body>
+<div class="shell">
+  <header class="topbar">
+    <a class="brand" href="./"><img src="./assets/ninja.svg" alt="" width="42" height="42"><span>NINJA <b>RUN</b></span><span class="version">v0.1</span></a>
+    <nav aria-label="主要選單"><a id="homeLink" href="https://katherineyang193.github.io/GameHome/">↖ GameHome</a><button id="settingsBtn" class="quiet">家長設定</button></nav>
+  </header>
+  <main>
+    <section class="intro">
+      <div><span class="eyebrow">MOVE. PLAY. SMILE.</span><h1>小忍者<span>衝衝衝</span><span class="title-star" aria-hidden="true">✦</span></h1><p>用身體出招，讓冒險準備就緒！</p></div>
+      <div class="chapter"><span>01</span><div>忍者動作練習場<small>跑・跳・蹲・左右閃</small></div></div>
+    </section>
+    <section class="play-area" aria-label="動作練習場">
+      <div class="dojo" id="dojo">
+        <div class="dojo-top"><span class="pill">✦ 動作練習場</span><span id="sessionClock" class="clock">準備出發</span></div>
+        <div class="hero-message"><span id="phaseLabel" class="eyebrow">READY, LITTLE NINJA?</span><h2 id="mainMessage" role="status" aria-live="polite">準備好動一動了嗎？</h2><p id="detailMessage">先空出左右的空間，讓鏡頭看見你的全身。</p></div>
+        <div class="ninja-zone" aria-hidden="true"><div class="orbit orbit-one"></div><div class="orbit orbit-two"></div><span class="spark spark-one">✧</span><span class="spark spark-two">✦</span><img id="ninja" src="./assets/ninja.svg" alt="" width="190" height="190"><div class="ninja-shadow"></div><div id="feedback" class="feedback"></div></div>
+        <div class="start-area"><button id="startBtn" class="primary">開啟鏡頭，開始練習 <span>→</span></button><button id="stopBtn" class="quiet" hidden>結束練習・關閉鏡頭</button><button id="recalibrateBtn" class="quiet" hidden>重新校正</button><button id="continueBtn" class="primary" hidden>休息好了，繼續練習 →</button></div>
+        <p class="privacy">⌁ 鏡頭只用來辨識你的動作，不會錄影或上傳影像。</p>
+        <div class="direction-strip"><span>← 你的左邊</span><span>站在中央</span><span>你的右邊 →</span></div>
+        <div id="cameraBox" class="camera-box" hidden><div class="camera-viewport"><video id="cameraVideo" autoplay muted playsinline></video><canvas id="skeleton"></canvas><div class="safe-zone"><svg viewBox="0 0 100 200" aria-hidden="true"><circle cx="50" cy="24" r="12"/><path d="M50 40V104 M50 50L22 88 M50 50L78 88 M50 104L29 166 M50 104L71 166"/></svg></div><span id="cameraOverlay" class="camera-overlay">站到框框裡</span></div><div class="camera-caption"><span id="cameraStatus">● CAMERA OFF</span><span id="trackingStatus">等待身體</span></div></div>
+      </div>
+      <aside class="mission-panel">
+        <span class="eyebrow">YOUR MOVE KIT</span><h2>五個忍者招式</h2><p class="muted">做出動作，就會亮起 ✓</p>
+        <div class="moves">
+          <div class="move" data-action="RUN"><span class="move-icon">↟</span><div><strong>原地跑</strong><small>左右腳輕輕交替抬起</small></div><span class="move-count" id="countRUN">—</span></div>
+          <div class="move" data-action="JUMP"><span class="move-icon">↑</span><div><strong>跳一下</strong><small id="jumpHelp">輕輕跳，身體一起往上</small></div><span class="move-count" id="countJUMP">—</span></div>
+          <div class="move" data-action="CROUCH"><span class="move-icon">↓</span><div><strong>蹲下來</strong><small>彎彎膝蓋，身體降低</small></div><span class="move-count" id="countCROUCH">—</span></div>
+          <div class="move" data-action="DODGE_LEFT"><span class="move-icon">←</span><div><strong>往你的左邊閃</strong><small>閃完先回到中央</small></div><span class="move-count" id="countDODGE_LEFT">—</span></div>
+          <div class="move" data-action="DODGE_RIGHT"><span class="move-icon">→</span><div><strong>往你的右邊閃</strong><small>閃完先回到中央</small></div><span class="move-count" id="countDODGE_RIGHT">—</span></div>
+        </div>
+        <div class="energy-box"><div><strong>跑動活力</strong><span id="runLabel">等你跑起來</span></div><progress id="runMeter" value="0" max="1" aria-label="跑動活力"></progress></div>
+        <div class="little-note"><span>✧</span><p>不用做得完美。<br>動起來，就是很棒的忍者！</p></div>
+      </aside>
+    </section>
+    <section id="summary" class="summary" hidden aria-live="polite"><h2>動作練習完成！ ✦</h2><p id="summaryText"></p></section>
+    <section class="developer"><button id="debugToggle" class="quiet" aria-expanded="false" aria-controls="debugPanel">⌘ 開發模式 <span>＋</span></button><div id="debugPanel" hidden><div class="debug-tools"><label><input type="checkbox" id="skeletonToggle">顯示人體骨架</label><button id="selfTestBtn" class="quiet">執行合成動作測試</button><button id="modelTestBtn" class="quiet">檢查模型載入</button><a href="./docs/DELIVERY.md">開發與驗收紀錄 ↗</a></div><pre id="debugValues">Camera OFF · 尚未開始</pre><div id="selfTestResult" role="status"></div><small>合成測試只驗證判定程式，不代表真人動作已驗收；不會增加練習計數。</small></div></section>
+  </main>
+  <footer><span>NINJA RUN · 原創體感遊戲</span><span>Windows + Webcam · Motion Playground</span></footer>
+</div>
+<dialog id="settingsDialog"><form method="dialog" id="settingsForm"><div class="dialog-heading"><div><span class="eyebrow">GROWN-UP CORNER</span><h2>家長設定</h2></div><button class="quiet" value="cancel" aria-label="關閉設定">✕</button></div><p>找個安全的空間，用舒服的方式動一動。</p><div class="settings-grid">
+  <label>每次練習<select id="duration"><option value="60">1 分鐘</option><option value="120">2 分鐘</option><option value="180">3 分鐘</option></select></label>
+  <label>難度<select id="difficulty"><option value="EASY">Easy・輕鬆</option><option value="NORMAL">Normal・標準</option><option value="HARD">Hard・挑戰</option></select><small>動作練習場的姿勢門檻相同。</small></label>
+  <label>鏡頭顯示<select id="mirrorMode"><option value="auto">自動</option><option value="mirror">鏡像</option><option value="normal">非鏡像</option></select><small>顯示方式不會改變你的左右判定。</small></label>
+  <label class="check"><input id="jumpEnabled" type="checkbox">允許跳躍</label><label class="check"><input id="sound" type="checkbox">動作音效</label><label class="check"><input id="rememberCalibration" type="checkbox">記住這個鏡頭的左右校正</label>
+  <label class="check disabled"><input id="music" type="checkbox" disabled>音樂（森林冒險階段加入）</label>
+  <label class="wide">GameHome 入口<input id="gameHomeUrl" type="url" placeholder="https://…"></label>
+  </div><p id="settingsWarning" class="muted" role="status"></p><div class="dialog-actions"><button id="clearCalibration" type="button" class="quiet">清除左右校正</button><button class="primary" id="saveSettings" value="save">保存設定 ✓</button></div></form></dialog>
+<script type="module" src="./src/app.js"></script>
+</body>
+</html>

@@ -49,7 +49,7 @@ async function start(){
 function recalibrate(){
   if(!camera.active)return;
   settings.update({calibration:null});calibration.reset();baseline=null;mapper=null;countdownAt=null;tracking.reset();detector.reset();phase='CALIBRATION';
-  $('dojo').classList.add('calibrating');message('站在框框裡，重新看看你的左右','請面向鏡頭。');
+  $('dojo').classList.add('calibrating');applySettings();message('站在框框裡，重新看看你的左右','請面向鏡頭。');
 }
 function processPose(lm,now){
   lastPoseTime=performance.now();landmarks=lm;features=poseFeatures(lm,aspect);
@@ -63,6 +63,7 @@ function processPose(lm,now){
     if(result.phase==='READY'){
       baseline=result.baseline;mapper=new PlayerCoordinateMapper(result.direction);
       settings.update({calibration:{...result.direction,deviceId:device.deviceId??'',aspect}});
+      applySettings();
       phase='COUNTDOWN';countdownAt=performance.now();lastCount=null;
     }
   }else if(phase==='COUNTDOWN'){

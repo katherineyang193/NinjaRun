@@ -55,7 +55,9 @@ export class CalibrationManager {
       else {this.lowerSince??=now;if(now-this.lowerSince>=250)this.phase='RIGHT_HAND';}
     } else if (this.phase==='BASELINE') {
       // Hands down prevents baseline acquisition during the calibration gesture.
-      if (this.raised(f)) {this.samples=[];return {phase:this.phase,message:'雙手放下，站在中央'};}
+      if (['left','right'].some(side=>visible(f.p[side+'Wrist'])&&f.p[side+'Wrist'].y<f.p[side+'Shoulder'].y-.04)) {
+        this.samples=[];return {phase:this.phase,message:'雙手放下，站在中央'};
+      }
       this.samples.push({...f,time:now}); if(this.samples.length>24)this.samples.shift();
       const keys=['hipX','hipY','shoulderY','kneeY','bodyHeight'];
       const stable=keys.every(key=>Math.max(...this.samples.map(s=>s[key]))-Math.min(...this.samples.map(s=>s[key]))<.028);

@@ -6,6 +6,7 @@ import {TrackingManager} from '../src/motion/TrackingManager.js';
 import {CalibrationManager} from '../src/motion/CalibrationManager.js';
 import {poseFeatures,standingCheck} from '../src/motion/pose-features.js';
 import {SettingsManager} from '../src/settings/SettingsManager.js';
+import {MirrorController} from '../src/motion/MirrorController.js';
 import {neutral,syntheticTrace,runSelfTest} from '../src/dev/self-test.js';
 
 function stream(detector=new MotionDetector()){
@@ -116,3 +117,15 @@ test('settings persist, sanitize corruption and bind calibration to camera/aspec
   store.text='{bad';assert.ok(new SettingsManager(store).warning);s.update({gameHomeUrl:'javascript:alert(1)',duration:-9,mirrorMode:'wrong'});assert.equal(s.value.duration,180);assert.equal(s.value.mirrorMode,'auto');
 });
 test('storage denied does not crash the game',()=>{const s=new SettingsManager({getItem(){throw Error('denied');},setItem(){throw Error('denied');}});assert.ok(s.warning);assert.doesNotThrow(()=>s.update({sound:false}));assert.equal(s.value.sound,false);assert.ok(s.warning);});
+test('auto preview follows measured raw direction, manual mirror never changes player mapping',()=>{
+  const settings={value:{mirrorMode:'auto',calibration:{playerRightSign:1}}};const mirror=new MirrorController(settings);
+  assert.equal(mirror.displayMirrored,false);settings.value.calibration.playerRightSign=-1;assert.equal(mirror.displayMirrored,true);
+  settings.value.mirrorMode='normal';assert.equal(mirror.displayMirrored,false);settings.value.mirrorMode='mirror';assert.equal(mirror.displayMirrored,true);
+  assert.equal(settings.value.calibration.playerRightSign,-1);
+});
+test('baseline cannot be recorded with both hands up or bent knees',()=>{
+  const c=new CalibrationManager();c.reset({playerRightSign:-1,mirrorDirection:false});let time=0;
+  for(let i=0;i<30;i++){const p=pose({raised:'left'});p[16].y=.14;c.update(poseFeatures(p),time+=40);}
+  assert.equal(c.phase,'BASELINE');assert.equal(c.samples.length,0);
+  assert.equal(standingCheck({...poseFeatures(pose()),kneeAngle:130}).ready,false);
+});

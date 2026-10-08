@@ -39,6 +39,6 @@ export function standingCheck(f) {
   if (f.p.head.y < .055 || f.kneeY > .92 || f.bodyHeight > .9) return {ready:false,message:'再退後一點'};
   if (Math.abs(f.hipX-.5) > .15 || Math.abs(f.shoulderX-.5)>.16) return {ready:false,message:'請站到中央'};
   if (f.bodyHeight < .35) return {ready:false,message:'再靠近一點'};
-  if (f.torsoHeight < .1 || f.kneeY-f.hipY < .055) return {ready:false,message:'請站直，讓我看看你'};
+  if (f.torsoHeight < .1 || f.kneeY-f.hipY < .055 || f.kneeAngle < 155) return {ready:false,message:'請站直，讓我看看你'};
   return {ready:true,message:f.anklesVisible?'準備完成！':'我還看不到你的腳',warning:!f.anklesVisible};
 }

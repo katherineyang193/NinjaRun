@@ -32,7 +32,7 @@ CameraManager、PoseManager、MirrorController、CalibrationManager、PlayerCoor
 
 CameraCoordinate 是 video 原始像素；PoseCoordinate 是原始正規化 0–1 座標；PlayerCoordinate 使用校正取得的 playerRightSign 和站位平均，正值永遠是玩家右、負值永遠是玩家左；GameCoordinate 把左／右映射到 ← / → 與角色動作。
 
-mirrorMode 的 auto / mirror / normal 只控制 preview 是否翻轉；auto 前鏡頭預覽使用鏡像。mirrorDirection 表示模型左右標籤是否需反轉，由舉手校正決定。這兩個概念獨立，切換 preview 不會變動判定。測試涵蓋原始影像 x 翻轉和左右 landmark 標籤反轉的四種組合。
+mirrorMode 的 auto / mirror / normal 只控制 preview 是否翻轉；auto 校正前使用前鏡頭鏡像，校正後依 playerRightSign 選擇預覽方向，讓本人的右移在預覽往右（也支援已翻轉的虛擬鏡頭）。mirrorDirection 表示模型左右標籤是否需反轉，由舉手校正決定。這兩個概念獨立，切換 preview 不會變動判定。測試涵蓋原始影像 x 翻轉和左右 landmark 標籤反轉的四種組合。
 
 ## 7. 左右校正
 
@@ -86,7 +86,7 @@ Render FPS、Pose FPS、confidence、Hip X/Y、baseline X/Y、24 frames、motion
 
 ## 實際驗證紀錄
 
-- 自動測試：35 項通過、0 失敗；包含 Worker 舊 session 結果隔離。`node --check` 通過，19 個公開靜態資源與相對 imports 存在。
+- 自動測試：37 項通過、0 失敗；包含 Worker 舊 session 結果隔離、自動預覽跟隨實測方向、雙手舉起／蹲姿不能記錄站位。`node --check` 通過，19 個公開靜態資源與相對 imports 存在。
 - 首次同步 commit：`b4a287daaddf0a72968f6d9759a95f109ff07a1c`，`feat: add ninja pose calibration and motion playground`，分支 `main`。本機 `git push` 因無登入認證失敗，改用既有 GitHub connector 建立 tree / commit 並以非 force 更新 ref。本機 checkpoint commits 保留在 `codex/local-checkpoint`，本機 `main` 跟隨遠端。
 - GitHub Motion checks：[成功](https://github.com/katherineyang193/NinjaRun/actions/runs/37796516655)。Pages 從 `main` 根目錄發佈，由使用者啟用設定；[首次 build / deployment 成功](https://github.com/katherineyang193/NinjaRun/actions/runs/37796764981)。
 - 公開首頁已在內建 Chromium 瀏覽器實際開啟，可讀到標題、招式卡、家長設定與開發面板。原版模型載入成功（COMPATIBILITY）；修正 MediaPipe WASM loader 所需 classic Worker 後，本機載入成功（WORKER），增加空白影格推論測試；最新公開版本再次驗證。

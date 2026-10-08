@@ -13,7 +13,7 @@
 <div class="shell">
   <header class="topbar">
     <a class="brand" href="./"><img src="./assets/ninja.svg" alt="" width="42" height="42"><span>NINJA <b>RUN</b></span><span class="version">v0.1</span></a>
-    <nav aria-label="主要選單"><a id="homeLink" href="https://katherineyang193.github.io/GameHome/">↖ GameHome</a><button id="settingsBtn" class="quiet">家長設定</button></nav>
+    <nav aria-label="主要選單"><a id="homeLink" href="https://katherineyang193.github.io/GameHome/">↖ GameHome</a><button id="settingsBtn" class="quiet">家長設定</button><button id="fullscreenBtn" class="quiet">放大全螢幕 ↗</button></nav>
   </header>
   <main>
     <section class="intro">
@@ -24,27 +24,31 @@
       <div class="dojo" id="dojo">
         <div class="dojo-top"><span class="pill">✦ 動作練習場</span><span id="sessionClock" class="clock">準備出發</span></div>
         <div class="hero-message"><span id="phaseLabel" class="eyebrow">READY, LITTLE NINJA?</span><h2 id="mainMessage" role="status" aria-live="polite">準備好動一動了嗎？</h2><p id="detailMessage">先空出左右的空間，讓鏡頭看見你的全身。</p></div>
+        <div class="movement-view">
         <div class="ninja-zone" aria-hidden="true"><div class="orbit orbit-one"></div><div class="orbit orbit-two"></div><span class="spark spark-one">✧</span><span class="spark spark-two">✦</span><img id="ninja" src="./assets/ninja.svg" alt="" width="190" height="190"><div class="ninja-shadow"></div><div id="feedback" class="feedback"></div></div>
+        <div id="cameraBox" class="camera-box" hidden><div class="camera-viewport"><video id="cameraVideo" autoplay muted playsinline></video><canvas id="skeleton"></canvas><div class="safe-zone"><svg viewBox="0 0 100 200" aria-hidden="true"><circle cx="50" cy="24" r="12"/><path d="M50 40V104 M50 50L22 88 M50 50L78 88 M50 104L29 166 M50 104L71 166"/></svg></div><span id="cameraOverlay" class="camera-overlay">站到框框裡</span></div><div class="camera-caption"><span id="cameraStatus">● CAMERA OFF</span><span id="trackingStatus">等待身體</span></div></div>
+        </div>
+        <p id="lastSuccess" class="last-success">成功後勾勾會保留，回中央也不會消失。</p>
         <div class="start-area"><button id="startBtn" class="primary">開啟鏡頭，開始練習 <span>→</span></button><button id="stopBtn" class="quiet" hidden>結束練習・關閉鏡頭</button><button id="recalibrateBtn" class="quiet" hidden>重新校正</button><button id="continueBtn" class="primary" hidden>休息好了，繼續練習 →</button></div>
+        <p id="viewStatus" role="status"></p>
         <p class="privacy">⌁ 鏡頭只用來辨識你的動作，不會錄影或上傳影像。</p>
         <div class="direction-strip"><span>← 你的左邊</span><span>站在中央</span><span>你的右邊 →</span></div>
-        <div id="cameraBox" class="camera-box" hidden><div class="camera-viewport"><video id="cameraVideo" autoplay muted playsinline></video><canvas id="skeleton"></canvas><div class="safe-zone"><svg viewBox="0 0 100 200" aria-hidden="true"><circle cx="50" cy="24" r="12"/><path d="M50 40V104 M50 50L22 88 M50 50L78 88 M50 104L29 166 M50 104L71 166"/></svg></div><span id="cameraOverlay" class="camera-overlay">站到框框裡</span></div><div class="camera-caption"><span id="cameraStatus">● CAMERA OFF</span><span id="trackingStatus">等待身體</span></div></div>
       </div>
       <aside class="mission-panel">
-        <span class="eyebrow">YOUR MOVE KIT</span><h2>五個忍者招式</h2><p class="muted">做出動作，就會亮起 ✓</p>
+        <span class="eyebrow">YOUR MOVE KIT</span><h2>忍者招式</h2><p id="practiceProgress" class="practice-progress" role="status">已完成 0 / 5 招</p><p class="muted">✓ 已完成會保留；● 代表正在做。</p>
         <div class="moves">
-          <div class="move" data-action="RUN"><span class="move-icon">↟</span><div><strong>原地跑</strong><small>左右腳輕輕交替抬起</small></div><span class="move-count" id="countRUN">—</span></div>
-          <div class="move" data-action="JUMP"><span class="move-icon">↑</span><div><strong>跳一下</strong><small id="jumpHelp">輕輕跳，身體一起往上</small></div><span class="move-count" id="countJUMP">—</span></div>
-          <div class="move" data-action="CROUCH"><span class="move-icon">↓</span><div><strong>蹲下來</strong><small>彎彎膝蓋，身體降低</small></div><span class="move-count" id="countCROUCH">—</span></div>
-          <div class="move" data-action="DODGE_LEFT"><span class="move-icon">←</span><div><strong>往你的左邊閃</strong><small>閃完先回到中央</small></div><span class="move-count" id="countDODGE_LEFT">—</span></div>
-          <div class="move" data-action="DODGE_RIGHT"><span class="move-icon">→</span><div><strong>往你的右邊閃</strong><small>閃完先回到中央</small></div><span class="move-count" id="countDODGE_RIGHT">—</span></div>
+          <div class="move" data-action="RUN"><span class="move-icon">↟</span><div class="move-description"><strong>原地跑</strong><small>左右腳輕輕交替抬起</small><span class="move-status" id="statusRUN">等你出招</span></div><span class="move-count" id="countRUN">尚未完成</span></div>
+          <div class="move" data-action="JUMP"><span class="move-icon">↑</span><div class="move-description"><strong>跳一下</strong><small id="jumpHelp">輕輕跳，身體一起往上</small><span class="move-status" id="statusJUMP">等你出招</span></div><span class="move-count" id="countJUMP">尚未完成</span></div>
+          <div class="move" data-action="CROUCH"><span class="move-icon">↓</span><div class="move-description"><strong>蹲下來</strong><small>彎彎膝蓋，身體降低</small><span class="move-status" id="statusCROUCH">等你出招</span></div><span class="move-count" id="countCROUCH">尚未完成</span></div>
+          <div class="move" data-action="DODGE_LEFT"><span class="move-icon">←</span><div class="move-description"><strong>往你的左邊閃</strong><small>閃完先回到中央</small><span class="move-status" id="statusDODGE_LEFT">等你出招</span></div><span class="move-count" id="countDODGE_LEFT">尚未完成</span></div>
+          <div class="move" data-action="DODGE_RIGHT"><span class="move-icon">→</span><div class="move-description"><strong>往你的右邊閃</strong><small>閃完先回到中央</small><span class="move-status" id="statusDODGE_RIGHT">等你出招</span></div><span class="move-count" id="countDODGE_RIGHT">尚未完成</span></div>
         </div>
         <div class="energy-box"><div><strong>跑動活力</strong><span id="runLabel">等你跑起來</span></div><progress id="runMeter" value="0" max="1" aria-label="跑動活力"></progress></div>
         <div class="little-note"><span>✧</span><p>不用做得完美。<br>動起來，就是很棒的忍者！</p></div>
       </aside>
     </section>
     <section id="summary" class="summary" hidden aria-live="polite"><h2>動作練習完成！ ✦</h2><p id="summaryText"></p></section>
-    <section class="developer"><button id="debugToggle" class="quiet" aria-expanded="false" aria-controls="debugPanel">⌘ 開發模式 <span>＋</span></button><div id="debugPanel" hidden><div class="debug-tools"><label><input type="checkbox" id="skeletonToggle">顯示人體骨架</label><button id="selfTestBtn" class="quiet">執行合成動作測試</button><button id="modelTestBtn" class="quiet">檢查模型載入</button><a href="./docs/DELIVERY.md">開發與驗收紀錄 ↗</a></div><pre id="debugValues">Camera OFF · 尚未開始</pre><div id="selfTestResult" role="status"></div><small>合成測試只驗證判定程式，不代表真人動作已驗收；不會增加練習計數。</small></div></section>
+    <section class="developer"><button id="debugToggle" class="quiet" aria-expanded="false" aria-controls="debugPanel">⌘ 開發模式 <span>＋</span></button><div id="debugPanel" hidden><p id="debugSummary" class="debug-summary">流程：首頁　｜　身體：鏡頭尚未開啟　｜　動作辨識：0 次／秒</p><div class="debug-tools"><label><input type="checkbox" id="skeletonToggle">顯示人體骨架</label><button id="selfTestBtn" class="quiet">執行合成動作測試</button><button id="modelTestBtn" class="quiet">檢查模型載入</button><a href="./docs/DELIVERY.md">開發與驗收紀錄 ↗</a></div><pre id="debugValues">Camera OFF · 尚未開始</pre><details class="debug-help"><summary>這些數字是什麼？</summary><p><b>phase</b>：目前流程。HOME 是首頁、CALIBRATION 是校正、PLAYING 是練習中。<br><b>trackingState</b>：TRACKING 表示看得到身體；LOST_TRACKING 表示尚未追蹤到，練習會暫停。<br><b>Pose FPS</b>：每秒完成幾次身體辨識。鏡頭未開啟、模型 OFF 時是 0。<br><b>Render FPS</b>：畫面每秒更新次數，與辨識速度分開計算。<br><b>Engine</b>：WORKER 是背景辨識，COMPATIBILITY 是相容模式，OFF 是已關閉。</p></details><div id="selfTestResult" role="status"></div><small>「合成動作測試」的通過只驗證程式，不代表目前真人動作已完成；不會增加練習計數。</small></div></section>
   </main>
   <footer><span>NINJA RUN · 原創體感遊戲</span><span>Windows + Webcam · Motion Playground</span></footer>
 </div>

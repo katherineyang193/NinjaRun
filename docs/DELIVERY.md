@@ -16,7 +16,7 @@ PoseManager 採用 [CuteDart gesture.js](https://github.com/katherineyang193/Cut
 
 ## 3. 新增模組
 
-CameraManager、PoseManager、MirrorController、CalibrationManager、PlayerCoordinateMapper、MotionDetector、TrackingManager、AudioManager、SettingsManager 各自獨立匯出；沒有 GameHome DOM 依賴。GameHome 只透過可修改的 HTTPS 網址返回。新增姿勢特徵、Worker、合成測試和 UI。
+CameraManager、PoseManager、MirrorController、CalibrationManager、PlayerCoordinateMapper、MotionDetector、TrackingManager、AudioManager、SettingsManager 各自獨立匯出；沒有 GameHome DOM 依賴。GameHome 只透過可修改的 HTTPS 網址返回。新增姿勢特徵、Worker、合成測試和 UI。MotionProgress 獨立保存每局已完成招式、次數與上一招；偵測狀態回中央或遺失不會清除成果。
 
 ## 4. Camera 初始化
 
@@ -60,11 +60,13 @@ Hip 下降 > .085、Shoulder 下降 > .07，且膝角 < 157° 或 Hip-to-Knee �
 
 ## 13. Motion Debug Playground
 
-沒有键盤動作捷徑。Camera → 模型 → 站位 → 左手 → 放手 → 右手 → 基準平均 → 3/2/1 → 五招練習。招式卡立即亮起 ✓，角色同步動作、短音階与星星文字回饋。關閉 Jump 時卡片清楚停用。1/2/3 分鐘练習结束显示时间與计数；第三次完整练习后显示休息页。這不是完整森林遊戲。
+沒有鍵盤動作捷徑。Camera → 模型 → 站位 → 左手 → 放手 → 右手 → 基準平均 → 3/2/1 → 五招練習。招式卡「✓ 已完成」與累積次數整局保留，「● 正在做」才是即時狀態；回中央、重新校正、追蹤遺失都不清除成果，新一局才歸零。另顯示完成招式數及上一個成功動作。角色同步動作、短音階與星星文字回饋。關閉 Jump 時卡片清楚停用，目標為 4 招。1/2/3 分鐘練習結束顯示時間與計數；第三次完整練習後顯示休息頁。這不是完整森林遊戲。
+
+文字與鏡头尺寸依視窗寬度／高度調整，校正鏡頭放在版面中，不遮住提示或按鈕；練習中首頁介紹收起。支援全螢幕切換，瀏覽器不允許時提示 F11。窄視窗改為上下排列並保留可讀字号。
 
 ## 14. Developer Debug Panel
 
-Render FPS、Pose FPS、confidence、Hip X/Y、baseline X/Y、24 frames、motionState、runState、runIntensity、mirrorMode、displayMirrored、mirrorDirection、playerRightSign、playerX、trackingState、流程 phase 与五招計数。骨架預設隱藏。合成測試 RUN ✓ / JUMP ✓ / CROUCH ✓ / LEFT ✓ / RIGHT ✓，不混入玩家資料；另有模型載入檢查。
+Render FPS、Pose FPS、confidence、Hip X/Y、baseline X/Y、24 frames、motionState、runState、runIntensity、mirrorMode、displayMirrored、mirrorDirection、playerRightSign、playerX、trackingState、流程 phase 與五招計數。面板先顯示中文流程／追蹤／辨識速度，並提供可展開的術語說明。HOME + Engine OFF 時 Pose FPS 為 0 是正常的。骨架預設隱藏。合成測試 RUN ✓ / JUMP ✓ / CROUCH ✓ / LEFT ✓ / RIGHT ✓ 清楚標為「程式檢查（合成資料）」，不混入玩家資料；另有模型載入檢查。
 
 ## 15. 錯誤處理
 
@@ -86,10 +88,16 @@ Render FPS、Pose FPS、confidence、Hip X/Y、baseline X/Y、24 frames、motion
 
 ## 實際驗證紀錄
 
-- 自動測試：37 項通過、0 失敗；包含 Worker 舊 session 結果隔離、自動預覽跟隨實測方向、雙手舉起／蹲姿不能記錄站位。`node --check` 通過，19 個公開靜態資源與相對 imports 存在。
+- 自動測試：40 項通過、0 失敗；包含 Worker 舊 session 結果隔離、自動預覽跟隨實測方向、雙手舉起／蹲姿不能記錄站位，以及最後右閃完成後回中央／遺失追蹤／恢復仍保留成果、再次動作累計與關閉 Jump 的四招完成。`node --check` 通過，20 個公開靜態資源與相對 imports 存在。
 - 首次同步 commit：`b4a287daaddf0a72968f6d9759a95f109ff07a1c`，`feat: add ninja pose calibration and motion playground`，分支 `main`。本機 `git push` 因無登入認證失敗，改用既有 GitHub connector 建立 tree / commit 並以非 force 更新 ref。本機 checkpoint commits 保留在 `codex/local-checkpoint`，本機 `main` 跟隨遠端。
 - GitHub Motion checks：[成功](https://github.com/katherineyang193/NinjaRun/actions/runs/37796516655)。Pages 從 `main` 根目錄發佈，由使用者啟用設定；[首次 build / deployment 成功](https://github.com/katherineyang193/NinjaRun/actions/runs/37796764981)。
 - 公開首頁已在內建 Chromium 瀏覽器實際開啟，可讀到標題、招式卡、家長設定與開發面板。原版模型載入成功（COMPATIBILITY）；修正 MediaPipe WASM loader 所需 classic Worker 後，本機載入成功（WORKER），增加空白影格推論測試；最新公開版本再次驗證。
 - 本機 Refresh 後一分鐘、非鏡像、關閉跳躍等設定仍保留。公開版本同樣進行保存／Refresh 檢查。
 - 公開 HTTPS 確實發出相機請求，但自動瀏覽器未回應相機權限，30 秒後顯示可重試提示；未得到真人 Webcam 影格。因此「HTTPS Webcam 成功啟動、真人兩手校正、真人五招、不同鏡頭方向與實測 Pose FPS」仍未完成驗收，不能以合成測試替代。
 - 未修改或同步 CuteDart / GameHome；NinjaRun 有獨立公開網址與可修改 GameHome 返回入口。
+
+## 2026-10-08 真人回饋修正
+
+使用者回報成功提示後回中央像是成果消失、視窗和文字過小。原因是旧卡片勾勾只表示即時狀態；改為獨立每局完成紀錄，保留最後成功與全部招式進度。未降低動作門檻或取消回中央才能再次閃避的規則。
+
+本機實際瀏覽器檢查：1366×768、1920×1080、580×800、390×844 都沒有橫向溢出。校正版型的鏡頭寬度分別約 361、594、440、314 px；主要提示字為 37、50、30、30 px。校正／練習版型採沒有 Camera 影格的靜態測試頁，僅驗證排版，不作為真人辨識證明，測試頁不發布。實際應用的開發模式、合成測試、設定保存與 Refresh、全螢幕按鈕已操作確認，Console 沒有錯誤。新 UI 的真人距離可讀性與實際 Webcam 動作仍待使用者確認。

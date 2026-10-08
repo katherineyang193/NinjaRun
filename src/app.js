@@ -6,16 +6,20 @@ import {CalibrationManager} from './motion/CalibrationManager.js';
 import {PlayerCoordinateMapper} from './motion/PlayerCoordinateMapper.js';
 import {TrackingManager} from './motion/TrackingManager.js';
 import {MotionDetector} from './motion/MotionDetector.js';
+import {MotionProgress} from './motion/MotionProgress.js';
 import {poseFeatures} from './motion/pose-features.js';
 import {AudioManager} from './audio/AudioManager.js';
 import {runSelfTest} from './dev/self-test.js';
 const $=id=>document.getElementById(id);
 const settings=new SettingsManager(),mirror=new MirrorController(settings),calibration=new CalibrationManager();
 const tracking=new TrackingManager(),detector=new MotionDetector(settings.value),audio=new AudioManager(settings);
+const progress=new MotionProgress();
 let phase='HOME',epoch=0,device={},aspect=4/3,baseline=null,mapper=null,landmarks=null,features=null;
 let lastPoseTime=-Infinity,lastRenderTime=null,countdownAt=null,lastCount=null,trackingPaused=true;
-let elapsed=0,runTime=0,counters={},recent={},lastUI=0,renderFps=0,completions=0,feedbackTimer=null;
+let elapsed=0,runTime=0,recent={},lastUI=0,renderFps=0,completions=0,feedbackTimer=null;
 const names={RUN:'RUN ✓',JUMP:'JUMP ✓',CROUCH:'CROUCH ✓',DODGE_LEFT:'LEFT ✓',DODGE_RIGHT:'RIGHT ✓'};
+const actionLabels={RUN:'原地跑',JUMP:'跳躍',CROUCH:'蹲下',DODGE_LEFT:'左閃',DODGE_RIGHT:'右閃'};
+const phaseLabels={HOME:'首頁',LOADING:'開啟鏡頭／載入模型',CALIBRATION:'站位與左右校正',COUNTDOWN:'出發倒數',PLAYING:'動作練習中',FINISHED:'練習完成',REST:'休息時間',ERROR:'等待重試'};
 const states={CENTER:'再試試五個招式！',RUNNING:'跑起來了！',JUMPING:'跳得好！',CROUCHING:'蹲下成功！',DODGE_LEFT:'左閃成功！ ←',DODGE_RIGHT:'右閃成功！ →',LOST_TRACKING:'回到框框裡～'};
 const camera=new CameraManager($('cameraVideo'),{onEnded:()=>fail('鏡頭已中斷，請確認連接後重新開始。')});
 const pose=new PoseManager({onResult:processPose,onError:()=>fail('動作小幫手暫時中斷，請重新開始。'),onStatus:text=>{if(phase==='LOADING')message(text,'第一次載入需要一點時間，請稍等。');}});
@@ -30,7 +34,7 @@ function release(){epoch++;camera.stop();pose.close();tracking.reset();detector.
   $('dojo').classList.remove('calibrating');motion={state:'CENTER',runState:'IDLE',runIntensity:0,events:[]};}
 function fail(text){release();phase='ERROR';$('phaseLabel').textContent='LET’S TRY AGAIN';message(text,'準備好後，再按一次開啟鏡頭。');$('startBtn').textContent='再試一次開啟鏡頭 →';}
 async function start(){
-  release();const token=epoch;phase='LOADING';elapsed=0;runTime=0;recent={};counters={RUN:0,JUMP:0,CROUCH:0,DODGE_LEFT:0,DODGE_RIGHT:0};
+  release();const token=epoch;phase='LOADING';elapsed=0;runTime=0;recent={};progress.reset();
   $('summary').hidden=true;$('startBtn').hidden=true;$('stopBtn').hidden=false;$('phaseLabel').textContent='LET’S GET READY';message('正在開啟鏡頭…','瀏覽器會詢問相機權限。');
   await audio.unlock();if(token!==epoch)return;
   let loadingTimer;
@@ -74,13 +78,16 @@ function processPose(lm,now){
     }
   }else if(phase==='PLAYING'){
     motion=detector.update(mapper.map(features,baseline),now,true);
-    message(states[motion.state]??'再試試五個招式！',motion.state==='CENTER'?'原地跑、蹲下，或往自己的左右閃一下。':'做得很好！閃完先回中央，再試下一招。');
-    for(const action of motion.events){counters[action]++;recent[action]=performance.now()+850;
+    progress.record(motion.events);
+    const achievement=progress.snapshot(settings.value.jumpEnabled);
+    message(motion.state==='CENTER'?(achievement.allCompleted?'每一招都完成了！ ✦':'回到中央了，準備下一招！'):(states[motion.state]??'再試試忍者招式！'),
+      motion.state==='CENTER'?'成功的勾勾會保留，可以繼續累積次數。':'做得很好！閃完先回中央，再試下一招。');
+    for(const action of motion.events){recent[action]=performance.now()+850;
       audio.play(action);$('feedback').textContent=names[action]+' ✦';$('feedback').classList.remove('pop');void $('feedback').offsetWidth;$('feedback').classList.add('pop');
       clearTimeout(feedbackTimer);feedbackTimer=setTimeout(()=>{$('feedback').textContent='';},650);}
   }
 }
-function finish(){const report={...counters,elapsed,runTime};release();phase='FINISHED';completions++;
+function finish(){const report={...progress.counts,elapsed,runTime};release();phase='FINISHED';completions++;
   $('summary').hidden=false;$('summaryText').textContent=`動動時間 ${Math.round(report.elapsed)} 秒　·　跑動 ${Math.round(report.runTime)} 秒　·　跳躍 ${report.JUMP} 次　·　蹲下 ${report.CROUCH} 次　·　閃避 ${report.DODGE_LEFT+report.DODGE_RIGHT} 次。超級有活力！`;
   audio.play('finish');message('動作練習完成！','準備好了，就可以再練一次。');$('phaseLabel').textContent='NICE MOVES, NINJA!';
   if(completions>=3){phase='REST';message('休息一下，喝口水！','休息好了，按下面的按鈕再繼續。');$('startBtn').hidden=true;$('continueBtn').hidden=false;}
@@ -107,13 +114,20 @@ function frame(now){
     if(n>0){message(String(n),'站穩，準備出發！');if(lastCount!==n){audio.play('count');lastCount=n;}}
     else {phase='PLAYING';$('dojo').classList.remove('calibrating');detector.reset();$('phaseLabel').textContent='MOVE LIKE A NINJA';}}
   if(phase==='PLAYING'&&!trackingPaused&&!document.hidden){elapsed+=dt;if(motion.runState==='RUNNING')runTime+=dt;if(elapsed>=settings.value.duration)finish();}
-  if(now-lastUI>100){lastUI=now;$('sessionClock').textContent=phase==='PLAYING'?`${Math.floor(elapsed/60)}:${String(Math.floor(elapsed%60)).padStart(2,'0')} / ${settings.value.duration/60}:00`:phase==='LOADING'?'正在準備…':phase==='CALIBRATION'?'左右校正':phase==='COUNTDOWN'?'準備出發':phase==='FINISHED'||phase==='REST'?'練習完成':'準備出發';
+  if(now-lastUI>100){lastUI=now;document.body.dataset.phase=phase;$('sessionClock').textContent=phase==='PLAYING'?`${Math.floor(elapsed/60)}:${String(Math.floor(elapsed%60)).padStart(2,'0')} / ${settings.value.duration/60}:00`:phase==='LOADING'?'正在準備…':phase==='CALIBRATION'?'左右校正':phase==='COUNTDOWN'?'準備出發':phase==='FINISHED'||phase==='REST'?'練習完成':'準備出發';
     for(const action of Object.keys(names)){const active=phase==='PLAYING'&&!trackingPaused&&((recent[action]??0)>now||(action==='RUN'&&motion.state==='RUNNING')||(action==='CROUCH'&&motion.state==='CROUCHING')||motion.state===action);
-      document.querySelector(`[data-action="${action}"]`).classList.toggle('active',active);$('count'+action).textContent=active?'✓':(counters[action]||'—');}
+      const card=document.querySelector(`[data-action="${action}"]`),count=progress.counts[action];
+      card.classList.toggle('active',active);card.classList.toggle('completed',count>0);
+      $('count'+action).textContent=count>0?`✓ ${count} 次`:'尚未完成';
+      $('status'+action).textContent=action==='JUMP'&&!settings.value.jumpEnabled?'已關閉跳躍':active?'● 正在做':count>0?'✓ 已完成':'等你出招';}
+    const achievement=progress.snapshot(settings.value.jumpEnabled);
+    $('practiceProgress').textContent=`已完成 ${achievement.completed} / ${achievement.total} 招${achievement.allCompleted?' · 全部完成！':''}`;
+    $('lastSuccess').textContent=achievement.lastAction?`上一招：${actionLabels[achievement.lastAction]}成功 ✓ · 成果已保留`:'成功後勾勾會保留，回中央也不會消失。';
     $('runMeter').value=motion.runIntensity;$('runLabel').textContent=motion.runState==='RUNNING'?'跑起來了 ✓':'等你跑起來';
     document.querySelector('.ninja-zone').dataset.state=trackingPaused?'CENTER':motion.state;
     $('cameraOverlay').textContent=phase==='PLAYING'?(trackingPaused?'回到框框裡～':'你的左 ←　→ 你的右'):$('mainMessage').textContent;
-    if(!$('debugPanel').hidden){const v=x=>Number.isFinite(x)?x.toFixed(3):'—';$('debugValues').textContent=[
+    if(!$('debugPanel').hidden){$('debugSummary').textContent=`流程：${phaseLabels[phase]}　｜　身體：${camera.active?(trackingPaused?'暫時沒看到，等待站回框內':'正在追蹤'):'鏡頭尚未開啟'}　｜　動作辨識：${pose.fps.toFixed(1)} 次／秒`;
+      const v=x=>Number.isFinite(x)?x.toFixed(3):'—';$('debugValues').textContent=[
       `Render FPS: ${renderFps.toFixed(1)}   Pose FPS: ${pose.fps.toFixed(1)}   Engine: ${pose.mode}`,
       pose.fallbackReason?`Worker fallback: ${pose.fallbackReason}`:'',
       `Pose confidence: ${v(features?.confidence)}   Hip X: ${v(features?.hipX)}   Hip Y: ${v(features?.hipY)}`,
@@ -122,7 +136,7 @@ function frame(now){
       `mirrorMode: ${settings.value.mirrorMode}   displayMirrored: ${mirror.displayMirrored}   mirrorDirection: ${mirror.mirrorDirection??'uncalibrated'}`,
       `Player right raw sign: ${mapper?.calibration.playerRightSign??'—'}   Player X: ${v(motion.features?.playerX)}`,
       `trackingState: ${trackingPaused?'LOST_TRACKING':'TRACKING'}   phase: ${phase}`,
-      Object.keys(names).map(a=>`${a}: ${counters[a]??0}`).join('   '),settings.warning].filter(Boolean).join('\n');}
+      Object.keys(names).map(a=>`${a}: ${progress.counts[a]}`).join('   '),settings.warning].filter(Boolean).join('\n');}
     drawSkeleton();
   }
   requestAnimationFrame(frame);
@@ -130,7 +144,11 @@ function frame(now){
 $('startBtn').addEventListener('click',start);$('stopBtn').addEventListener('click',()=>{release();phase='HOME';message('休息一下，準備好再出發！');});$('recalibrateBtn').addEventListener('click',recalibrate);
 $('continueBtn').addEventListener('click',()=>{completions=0;$('continueBtn').hidden=true;$('startBtn').hidden=false;phase='HOME';message('準備好，再動一動！');});
 $('debugToggle').addEventListener('click',()=>{const hidden=!$('debugPanel').hidden;$('debugPanel').hidden=hidden;$('debugToggle').setAttribute('aria-expanded',String(!hidden));});
-$('selfTestBtn').addEventListener('click',()=>{const results=runSelfTest();$('selfTestResult').textContent=results.map(r=>`${names[r.action]} ${r.pass?'通過':'失敗'}`).join('　');});
+$('fullscreenBtn').addEventListener('click',async()=>{try{if(document.fullscreenElement)await document.exitFullscreen();else await document.documentElement.requestFullscreen();}
+  catch{$('viewStatus').textContent='可按 F11 放大瀏覽器畫面。';}});
+document.addEventListener('fullscreenchange',()=>{$('fullscreenBtn').textContent=document.fullscreenElement?'縮回視窗 ↙':'放大全螢幕 ↗';});
+if(!document.fullscreenEnabled)$('fullscreenBtn').hidden=true;
+$('selfTestBtn').addEventListener('click',()=>{const results=runSelfTest();$('selfTestResult').textContent='程式檢查（合成資料）：'+results.map(r=>`${names[r.action]} ${r.pass?'通過':'失敗'}`).join('　');});
 $('modelTestBtn').addEventListener('click',async()=>{
   if(camera.active||phase==='LOADING'){$('selfTestResult').textContent='鏡頭已在使用動作模型，請先結束練習。';return;}
   const token=epoch;$('modelTestBtn').disabled=true;$('startBtn').disabled=true;$('selfTestResult').textContent='正在檢查 Pose 模型…';

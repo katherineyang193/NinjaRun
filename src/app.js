@@ -1,6 +1,6 @@
 import {CameraManager,cameraErrorMessage} from './camera/CameraManager.js';
 import {PoseManager} from './pose/PoseManager.js';
-import {SettingsManager} from './settings/SettingsManager.js';
+import {SettingsManager} from './settings/SettingsManager.js?v=prompt1';
 import {MirrorController} from './motion/MirrorController.js';
 import {CalibrationManager} from './motion/CalibrationManager.js';
 import {PlayerCoordinateMapper} from './motion/PlayerCoordinateMapper.js';

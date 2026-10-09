@@ -1,4 +1,4 @@
-export const DEFAULTS=Object.freeze({mirrorMode:'auto',difficulty:'EASY',sound:true,music:false,
+export const DEFAULTS=Object.freeze({promptSize:'LARGE',mirrorMode:'auto',difficulty:'EASY',sound:true,music:false,
   jumpEnabled:true,duration:180,rememberCalibration:true,calibration:null,gameHomeUrl:'https://katherineyang193.github.io/GameHome/'});
 export class SettingsManager {
   constructor(storage) {this.storage=storage;this.warning='';this.value={...DEFAULTS};
@@ -11,6 +11,7 @@ export class SettingsManager {
     if(['auto','mirror','normal'].includes(value.mirrorMode))out.mirrorMode=value.mirrorMode;
     if(['EASY','NORMAL','HARD'].includes(value.difficulty))out.difficulty=value.difficulty;
     if([60,120,180].includes(Number(value.duration)))out.duration=Number(value.duration);
+    if(['STANDARD','LARGE','EXTRA_LARGE'].includes(value.promptSize))out.promptSize=value.promptSize;
     const c=value.calibration;
     if(c&&[-1,1].includes(c.playerRightSign)&&typeof c.mirrorDirection==='boolean'&&typeof c.deviceId==='string')out.calibration={
       playerRightSign:c.playerRightSign,mirrorDirection:c.mirrorDirection,deviceId:c.deviceId,aspect:Number(c.aspect)||4/3};

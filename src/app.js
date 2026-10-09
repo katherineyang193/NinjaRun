@@ -11,10 +11,14 @@ import {poseFeatures} from './motion/pose-features.js';
 import {AudioManager} from './audio/AudioManager.js';
 import {runSelfTest} from './dev/self-test.js';
 import {bodyInSafeFrame,drawTrackingOverlay} from './ui/TrackingOverlay.js';
+import {PromptSequence} from './game/PromptSequence.js';
+import {PromptView} from './ui/PromptView.js';
 const $=id=>document.getElementById(id);
 const settings=new SettingsManager(),mirror=new MirrorController(settings),calibration=new CalibrationManager();
 const tracking=new TrackingManager(),detector=new MotionDetector(settings.value),audio=new AudioManager(settings);
 const progress=new MotionProgress();
+const promptView=new PromptView($('promptStage'));
+let playMode='guided',sequence=null,lastMotionTime=null,lastPromptState=null;
 let phase='HOME',epoch=0,device={},aspect=4/3,baseline=null,mapper=null,landmarks=null,features=null;
 let lastPoseTime=-Infinity,lastRenderTime=null,countdownAt=null,lastCount=null,trackingPaused=true;
 let elapsed=0,runTime=0,recent={},lastUI=0,renderFps=0,completions=0,feedbackTimer=null;
@@ -26,16 +30,16 @@ const camera=new CameraManager($('cameraVideo'),{onEnded:()=>fail('鏡頭已中�
 const pose=new PoseManager({onResult:processPose,onError:()=>fail('動作小幫手暫時中斷，請重新開始。'),onStatus:text=>{if(phase==='LOADING')message(text,'第一次載入需要一點時間，請稍等。');}});
 let motion={state:'CENTER',runState:'IDLE',runIntensity:0,events:[]};
 function message(main,detail=''){if($('mainMessage').textContent!==main)$('mainMessage').textContent=main;$('detailMessage').textContent=detail;}
-function applySettings(){mirror.apply($('cameraVideo'));$('homeLink').href=settings.value.gameHomeUrl;
+function applySettings(){document.body.dataset.promptSize=settings.value.promptSize;mirror.apply($('cameraVideo'));$('homeLink').href=settings.value.gameHomeUrl;
   detector.jumpEnabled=settings.value.jumpEnabled;$('jumpHelp').textContent=settings.value.jumpEnabled?'輕輕跳，身體一起往上':'家長已關閉跳躍，練習其他四招';
   document.querySelector('[data-action="JUMP"]').classList.toggle('disabled',!settings.value.jumpEnabled);
 }
-function release(){epoch++;camera.stop();pose.close();tracking.reset();detector.lost();trackingPaused=true;landmarks=null;features=null;baseline=null;mapper=null;countdownAt=null;
+function release(){$('freeBtn').hidden=false;$('promptStage').hidden=true;document.body.dataset.mode='';epoch++;camera.stop();pose.close();tracking.reset();detector.lost();trackingPaused=true;landmarks=null;features=null;baseline=null;mapper=null;countdownAt=null;
   $('cameraBox').hidden=true;$('cameraStatus').textContent='● CAMERA OFF';$('trackingStatus').textContent='等待身體';$('safeZone').dataset.tracking='invalid';$('stopBtn').hidden=true;$('recalibrateBtn').hidden=true;$('startBtn').hidden=false;$('startBtn').disabled=false;
   $('dojo').classList.remove('calibrating');motion={state:'CENTER',runState:'IDLE',runIntensity:0,events:[]};}
 function fail(text){release();phase='ERROR';$('phaseLabel').textContent='LET’S TRY AGAIN';message(text,'準備好後，再按一次開啟鏡頭。');$('startBtn').textContent='再試一次開啟鏡頭 →';}
-async function start(){
-  release();const token=epoch;phase='LOADING';elapsed=0;runTime=0;recent={};progress.reset();
+async function start(mode='guided'){playMode=mode;
+  release();$('freeBtn').hidden=true;sequence=new PromptSequence(settings.value);lastMotionTime=null;lastPromptState=null;const token=epoch;phase='LOADING';elapsed=0;runTime=0;recent={};progress.reset();
   $('summary').hidden=true;$('startBtn').hidden=true;$('stopBtn').hidden=false;$('phaseLabel').textContent='LET’S GET READY';message('正在開啟鏡頭…','瀏覽器會詢問相機權限。');
   await audio.unlock();if(token!==epoch)return;
   let loadingTimer;
@@ -60,7 +64,7 @@ function processPose(lm,now){
   lastPoseTime=performance.now();landmarks=lm;features=poseFeatures(lm,aspect);
   const result=tracking.update(bodyInSafeFrame(lm)?features:null,now);trackingPaused=result.paused;
   $('trackingStatus').textContent=result.message;
-  if(trackingPaused){motion=detector.lost();countdownAt=null;
+  if(trackingPaused){lastMotionTime=null;if(sequence)sequence.runHeld=0;motion=detector.lost();countdownAt=null;
     if(phase==='CALIBRATION')calibration.update(null,now);
     if(phase==='PLAYING'||phase==='COUNTDOWN'||phase==='CALIBRATION')message('回到框框裡～','找到你的身體就會繼續，不會扣分。');return;}
   if(phase==='CALIBRATION'){
@@ -80,6 +84,7 @@ function processPose(lm,now){
   }else if(phase==='PLAYING'){
     motion=detector.update(mapper.map(features,baseline),now,true);
     progress.record(motion.events);
+    if(playMode==='guided'){const gap=lastMotionTime===null?0:Math.min(120,now-lastMotionTime);lastMotionTime=now;if(sequence.observe(motion,gap))audio.play('success');promptView.update(sequence.snapshot(),false);}
     const achievement=progress.snapshot(settings.value.jumpEnabled);
     message(motion.state==='CENTER'?(achievement.allCompleted?'每一招都完成了！ ✦':'回到中央了，準備下一招！'):(states[motion.state]??'再試試忍者招式！'),
       motion.state==='CENTER'?'成功的勾勾會保留，可以繼續累積次數。':'做得很好！閃完先回中央，再試下一招。');
@@ -88,8 +93,9 @@ function processPose(lm,now){
       clearTimeout(feedbackTimer);feedbackTimer=setTimeout(()=>{$('feedback').textContent='';},650);}
   }
 }
-function finish(){const report={...progress.counts,elapsed,runTime};release();phase='FINISHED';completions++;
+function finish(){const promptReport=playMode==='guided'?sequence.report():null;const report={...progress.counts,elapsed,runTime};release();phase='FINISHED';completions++;
   $('summary').hidden=false;$('summaryText').textContent=`動動時間 ${Math.round(report.elapsed)} 秒　·　跑動 ${Math.round(report.runTime)} 秒　·　跳躍 ${report.JUMP} 次　·　蹲下 ${report.CROUCH} 次　·　閃避 ${report.DODGE_LEFT+report.DODGE_RIGHT} 次。超級有活力！`;
+  if(promptReport)$('summaryText').textContent+=' 提示挑戰：'+promptReport.map(r=>`${actionLabels[r.action]} ${r.successes}/${r.attempts}（${r.rate===null?'未出題':r.rate+'%'}）`).join(' · ')+`；最高 Combo ${sequence.bestCombo}。`;
   audio.play('finish');message('動作練習完成！','準備好了，就可以再練一次。');$('phaseLabel').textContent='NICE MOVES, NINJA!';
   if(completions>=3){phase='REST';message('休息一下，喝口水！','休息好了，按下面的按鈕再繼續。');$('startBtn').hidden=true;$('continueBtn').hidden=false;}
 }
@@ -101,14 +107,15 @@ function drawSkeleton(){
 function frame(now){
   const dt=lastRenderTime===null?0:Math.min(.1,(now-lastRenderTime)/1000);if(dt>0)renderFps=renderFps*.9+.1/dt;lastRenderTime=now;
   if(['PLAYING','COUNTDOWN','CALIBRATION'].includes(phase)&&now-lastPoseTime>450){
-    if(!trackingPaused){trackingPaused=true;motion=detector.lost();tracking.reset();countdownAt=null;if(phase==='CALIBRATION')calibration.update(null,now);}
+    if(!trackingPaused){trackingPaused=true;lastMotionTime=null;if(sequence)sequence.runHeld=0;motion=detector.lost();tracking.reset();countdownAt=null;if(phase==='CALIBRATION')calibration.update(null,now);}
     $('trackingStatus').textContent='回到框框裡～';message('回到框框裡～','找到你的身體就會繼續，不會扣分。');
   }
   if(phase==='COUNTDOWN'&&!trackingPaused){countdownAt??=now;const n=3-Math.floor((now-countdownAt)/1000);
     if(n>0){message(String(n),'站穩，準備出發！');if(lastCount!==n){audio.play('count');lastCount=n;}}
-    else {phase='PLAYING';$('dojo').classList.remove('calibrating');detector.reset();$('phaseLabel').textContent='MOVE LIKE A NINJA';}}
-  if(phase==='PLAYING'&&!trackingPaused&&!document.hidden){elapsed+=dt;if(motion.runState==='RUNNING')runTime+=dt;if(elapsed>=settings.value.duration)finish();}
-  if(now-lastUI>100){lastUI=now;document.body.dataset.phase=phase;$('sessionClock').textContent=phase==='PLAYING'?`${Math.floor(elapsed/60)}:${String(Math.floor(elapsed%60)).padStart(2,'0')} / ${settings.value.duration/60}:00`:phase==='LOADING'?'正在準備…':phase==='CALIBRATION'?'左右校正':phase==='COUNTDOWN'?'準備出發':phase==='FINISHED'||phase==='REST'?'練習完成':'準備出發';
+    else {phase='PLAYING';$('dojo').classList.remove('calibrating');detector.reset();document.body.dataset.mode=playMode;$('promptStage').hidden=playMode!=='guided';$('phaseLabel').textContent='MOVE LIKE A NINJA';}}
+  if(phase==='PLAYING'&&!trackingPaused&&!document.hidden){elapsed+=dt;if(motion.runState==='RUNNING')runTime+=dt;if(playMode==='guided'){sequence.advance(dt*1000);const snap=sequence.snapshot();if(snap.promptState==='ACTIVE'&&lastPromptState!=='ACTIVE')audio.play('count');lastPromptState=snap.promptState;promptView.update(snap,false);if(snap.promptState==='FINISHED')finish();}else if(elapsed>=settings.value.duration)finish();}
+  if(phase==='PLAYING'&&playMode==='guided')promptView.update(sequence.snapshot(),trackingPaused);
+  if(now-lastUI>100){lastUI=now;document.body.dataset.phase=phase;$('sessionClock').textContent=phase==='PLAYING'?`${Math.floor(elapsed/60)}:${String(Math.floor(elapsed%60)).padStart(2,'0')} / ${playMode==='guided'?'1:04':settings.value.duration/60+':00'}`:phase==='LOADING'?'正在準備…':phase==='CALIBRATION'?'左右校正':phase==='COUNTDOWN'?'準備出發':phase==='FINISHED'||phase==='REST'?'練習完成':'準備出發';
     for(const action of Object.keys(names)){const active=phase==='PLAYING'&&!trackingPaused&&((recent[action]??0)>now||(action==='RUN'&&motion.state==='RUNNING')||(action==='CROUCH'&&motion.state==='CROUCHING')||motion.state===action);
       const card=document.querySelector(`[data-action="${action}"]`),count=progress.counts[action];
       card.classList.toggle('active',active);card.classList.toggle('completed',count>0);
@@ -130,12 +137,13 @@ function frame(now){
       `mirrorMode: ${settings.value.mirrorMode}   displayMirrored: ${mirror.displayMirrored}   mirrorDirection: ${mirror.mirrorDirection??'uncalibrated'}`,
       `Player right raw sign: ${mapper?.calibration.playerRightSign??'—'}   Player X: ${v(motion.features?.playerX)}`,
       `trackingState: ${trackingPaused?'LOST_TRACKING':'TRACKING'}   phase: ${phase}`,
+      ...(sequence&&playMode==='guided'?[`promptState: ${sequence.state}   currentPrompt: ${sequence.snapshot().currentPrompt}   nextPrompt: ${sequence.snapshot().nextPrompt.join(',')}`,`promptStartTime: ${sequence.snapshot().promptStartTime}ms   activeWindow: ${sequence.snapshot().activeWindow.join('–')}ms`, `motionDetected: ${sequence.motionDetected??'—'}   successTimestamp: ${sequence.successTimestamp??'—'}ms`]:[]),
       Object.keys(names).map(a=>`${a}: ${progress.counts[a]}`).join('   '),settings.warning].filter(Boolean).join('\n');}
     drawSkeleton();
   }
   requestAnimationFrame(frame);
 }
-$('startBtn').addEventListener('click',start);$('stopBtn').addEventListener('click',()=>{release();phase='HOME';message('休息一下，準備好再出發！');});$('recalibrateBtn').addEventListener('click',recalibrate);
+$('startBtn').addEventListener('click',()=>start('guided'));$('freeBtn').addEventListener('click',()=>start('free'));$('stopBtn').addEventListener('click',()=>{release();phase='HOME';message('休息一下，準備好再出發！');});$('recalibrateBtn').addEventListener('click',recalibrate);
 $('continueBtn').addEventListener('click',()=>{completions=0;$('continueBtn').hidden=true;$('startBtn').hidden=false;phase='HOME';message('準備好，再動一動！');});
 $('debugToggle').addEventListener('click',()=>{const hidden=!$('debugPanel').hidden;$('debugPanel').hidden=hidden;$('debugToggle').setAttribute('aria-expanded',String(!hidden));});
 $('closeDebugBtn').addEventListener('click',()=>{$('debugPanel').hidden=true;$('debugToggle').setAttribute('aria-expanded','false');});
@@ -154,9 +162,9 @@ $('modelTestBtn').addEventListener('click',async()=>{
   }catch{if(token===epoch)$('selfTestResult').textContent='Pose 模型載入或推論失敗，請檢查 CDN／模型網址是否可連線。';}
   finally{clearTimeout(timer);pose.close();$('modelTestBtn').disabled=false;$('startBtn').disabled=false;}
 });
-$('settingsBtn').addEventListener('click',()=>{for(const key of ['mirrorMode','difficulty','duration','gameHomeUrl'])$(key).value=settings.value[key];
+$('settingsBtn').addEventListener('click',()=>{for(const key of ['promptSize','mirrorMode','difficulty','duration','gameHomeUrl'])$(key).value=settings.value[key];
   for(const key of ['jumpEnabled','sound','music','rememberCalibration'])$(key).checked=settings.value[key];$('settingsWarning').textContent=settings.warning;$('settingsDialog').showModal();});
-$('saveSettings').addEventListener('click',()=>{const patch={};for(const key of ['mirrorMode','difficulty','duration','gameHomeUrl'])patch[key]=$(key).value;
+$('saveSettings').addEventListener('click',()=>{const patch={};for(const key of ['promptSize','mirrorMode','difficulty','duration','gameHomeUrl'])patch[key]=$(key).value;
   for(const key of ['jumpEnabled','sound','rememberCalibration'])patch[key]=$(key).checked;settings.update(patch);applySettings();});
 $('clearCalibration').addEventListener('click',()=>{settings.update({calibration:null});if(camera.active)recalibrate();$('settingsWarning').textContent='左右校正已清除，下次開始會重新確認。';});
 document.addEventListener('visibilitychange',()=>{lastRenderTime=null;if(document.hidden){pose.stop();trackingPaused=true;tracking.reset();motion=detector.lost();}

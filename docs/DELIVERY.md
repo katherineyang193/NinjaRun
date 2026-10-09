@@ -109,3 +109,13 @@ Render FPS、Pose FPS、confidence、Hip X/Y、baseline X/Y、24 frames、motion
 依使用者真人回饋改為單一滿版視訊舞台，全部動作文字與成果疊在舞台內；加寬有效框，預設顯示黃／藍節點與亮黃辨識框。沿用同一 CameraManager 與 PoseManager，沒有新增 Camera Engine，也沒有錄影或上傳影像。
 
 本機 48 項自動測試通過。實際瀏覽器操作確認新版 UI、合成小步跑與其餘四招程式測試、預設節點開啟，Console 無錯誤。版型與繪圖採相同 TrackingOverlay 的合成節點測試頁，檢查亮黃／藍框、手腕越界、1366×768、1920×1080、1366×650、390×844；測試頁及圖片不發布，不能當真人辨識證明。真人小步跑的成功率與遠距可讀性仍需實際 Webcam 確認。
+
+## 2026-10-09 遠距提示關卡
+- 新增獨立 PromptSequence / PromptView，固定 64 秒、8 招：RUN → JUMP → RUN → LEFT → CROUCH → RUN → RIGHT → JUMP。關閉跳躍時改為 CROUCH。
+- 每招 PREVIEW 2 秒、ACTIVE 5 秒、結果 1 秒；提前成功保留到下一招。只有 ACTIVE 接受新的偵測事件；RUN 需連續 RUNNING 1 秒。失去追蹤／切換分頁暫停關卡，不扣分。
+- 原創 SVG 跑步小人及交替腳印；左右／跳蹲使用大箭頭。Standard / Large / Extra Large 採 clamp + vmin，預設 Large，保存 localStorage。
+- ACTIVE 發光、脈衝與提示音；SUCCESS 大勾勾、星光、NICE；MISS 淡出。最多預覽兩招。減少動畫偏好會關閉動畫。
+- 校正／自由練習維持滿版鏡頭；提示挑戰的鏡頭縮至右下。開發面板移至場景下方以免遮住提示。
+- Debug 新增 promptState/currentPrompt/nextPrompt/promptStartTime/activeWindow/motionDetected/successTimestamp。結果按真人判定顯示各招成功率。
+- 程式測試涵蓋有效時間、提前動作拒絕、跑動持續性、五種真實偵測器合成輸出串接與設定保存。合成資料不代表真人成功率。
+- 尚待真人完整全身入鏡距離驗收：箭頭與跑步圖示可讀性、預告／有效提示區別、五招成功率、誤判漏判、Pose FPS。未取得實測數據，不宣稱遠距驗收通過。

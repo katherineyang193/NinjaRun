@@ -44,7 +44,7 @@ mirrorMode 的 auto / mirror / normal 只控制 preview 是否翻轉；auto 校�
 
 ## 9. RUN
 
-以每邊 Hip-to-Knee 相對基準的縮短判斷膝蓋抬起，左右差超過身高 .028、抬升至少 .025，2 幀 / 45 ms 確認。每次有效步伐至少間隔 170 ms。1.6 秒内至少 3 次交替、最後一次在 750 ms 內，才 RUNNING；同一腳反覆抬不算跑。runIntensity 0–1，停止後退出，站著不動不會保持活動。判定不要求高抬腿。
+以每邊 Hip-to-Knee 相對基準的縮短判斷膝蓋抬起。小步跑的左右差門檻為身高 .014 或站位校正時雙腿差值標準差的 3.5 倍，取較大者；單腿抬升至少 .009。2 幀 / 35 ms 確認，原始資料也須保持同方向，避免 EMA 把單幀尖峰變成有效踏步。候選釋放門檻為觸發門檻 .45 倍。有效步伐至少間隔 150 ms；2.4 秒內至少 3 次交替、最後一次在 1150 ms 內，才 RUNNING。同一腳反覆抬、雙腿一起跟身體晃動與低幅度雜訊不算跑。runIntensity 0–1，停止後退出。姿势優先順序不變。
 
 ## 10. JUMP
 
@@ -62,11 +62,13 @@ Hip 下降 > .085、Shoulder 下降 > .07，且膝角 < 157° 或 Hip-to-Knee �
 
 沒有鍵盤動作捷徑。Camera → 模型 → 站位 → 左手 → 放手 → 右手 → 基準平均 → 3/2/1 → 五招練習。招式卡「✓ 已完成」與累積次數整局保留，「● 正在做」才是即時狀態；回中央、重新校正、追蹤遺失都不清除成果，新一局才歸零。另顯示完成招式數及上一個成功動作。角色同步動作、短音階與星星文字回饋。關閉 Jump 時卡片清楚停用，目標為 4 招。1/2/3 分鐘練習結束顯示時間與計數；第三次完整練習後顯示休息頁。這不是完整森林遊戲。
 
-文字與鏡头尺寸依視窗寬度／高度調整，校正鏡頭放在版面中，不遮住提示或按鈕；練習中首頁介紹收起。支援全螢幕切換，瀏覽器不允許時提示 F11。窄視窗改為上下排列並保留可讀字号。
+採滿版視訊舞台：video、節點與辨識框佔滿舞台，校正提示、倒數、動作成功、左右箭頭與成果皆疊在舞台內。用 object-fit:contain 保留完整鏡頭影像，影像比例不同時留邊，避免裁掉膝蓋。桌面成果面板浮在右側，讓中央髖、膝與腳部清楚可見；窄視窗改為底部成果列。支援全螢幕切換，瀏覽器不允許時提示 F11。
+
+TrackingOverlay 統一影像 contain 幾何、鏡像座標與站位框；安全範圍為原始影像 x .04–.96、y .025–.975，寬度由原先 56% 放寬至 92%。頭、肩、髖、膝可靠且在框內，連續追蹤恢復後，整框為 6px 亮黃加光暈與淺黃色填色。無有效人體或越界轉藍，並搭配 ✓／◇ 中文狀態。每個節點依即時信心值與是否在框內標黃／藍；只有部分人體時，已辨識節點仍可標黃，缺失膝蓋等標藍，整框保持藍色。影格過期時節點全轉藍；沒有座標時不捏造節點。
 
 ## 14. Developer Debug Panel
 
-Render FPS、Pose FPS、confidence、Hip X/Y、baseline X/Y、24 frames、motionState、runState、runIntensity、mirrorMode、displayMirrored、mirrorDirection、playerRightSign、playerX、trackingState、流程 phase 與五招計數。面板先顯示中文流程／追蹤／辨識速度，並提供可展開的術語說明。HOME + Engine OFF 時 Pose FPS 為 0 是正常的。骨架預設隱藏。合成測試 RUN ✓ / JUMP ✓ / CROUCH ✓ / LEFT ✓ / RIGHT ✓ 清楚標為「程式檢查（合成資料）」，不混入玩家資料；另有模型載入檢查。
+Render FPS、Pose FPS、confidence、Hip X/Y、baseline X/Y、24 frames、motionState、runState、runIntensity、mirrorMode、displayMirrored、mirrorDirection、playerRightSign、playerX、trackingState、流程 phase 與五招計數。增加踏步數、雙腿差值與當次 RUN 門檻。面板先顯示中文流程／追蹤／辨識速度，並提供可展開的術語說明。HOME + Engine OFF 時 Pose FPS 為 0 是正常的。依 2026-10-09 使用者要求，骨架節點預設顯示，舞台右上可關閉。合成測試 RUN ✓ / JUMP ✓ / CROUCH ✓ / LEFT ✓ / RIGHT ✓ 清楚標為「程式檢查（合成資料）」，不混入玩家資料；另有模型載入檢查。
 
 ## 15. 錯誤處理
 
@@ -88,7 +90,7 @@ Render FPS、Pose FPS、confidence、Hip X/Y、baseline X/Y、24 frames、motion
 
 ## 實際驗證紀錄
 
-- 自動測試：40 項通過、0 失敗；包含 Worker 舊 session 結果隔離、自動預覽跟隨實測方向、雙手舉起／蹲姿不能記錄站位，以及最後右閃完成後回中央／遺失追蹤／恢復仍保留成果、再次動作累計與關閉 Jump 的四招完成。`node --check` 通過，20 個公開靜態資源與相對 imports 存在。
+- 自動測試：48 項通過、0 失敗；包含 Camera、Worker、五招、校正、設定、完成紀錄、小步與低 FPS 跑動、校正雜訊抑制、站位框、鏡像 contain 幾何、黃藍節點與部分人體回饋。`node --check` 通過，21 個公開靜態資源與相對 imports 存在。
 - 首次同步 commit：`b4a287daaddf0a72968f6d9759a95f109ff07a1c`，`feat: add ninja pose calibration and motion playground`，分支 `main`。本機 `git push` 因無登入認證失敗，改用既有 GitHub connector 建立 tree / commit 並以非 force 更新 ref。本機 checkpoint commits 保留在 `codex/local-checkpoint`，本機 `main` 跟隨遠端。
 - GitHub Motion checks：[成功](https://github.com/katherineyang193/NinjaRun/actions/runs/37796516655)。Pages 從 `main` 根目錄發佈，由使用者啟用設定；[首次 build / deployment 成功](https://github.com/katherineyang193/NinjaRun/actions/runs/37796764981)。
 - 公開首頁已在內建 Chromium 瀏覽器實際開啟，可讀到標題、招式卡、家長設定與開發面板。原版模型載入成功（COMPATIBILITY）；修正 MediaPipe WASM loader 所需 classic Worker 後，本機載入成功（WORKER），增加空白影格推論測試；最新公開版本再次驗證。
@@ -101,3 +103,9 @@ Render FPS、Pose FPS、confidence、Hip X/Y、baseline X/Y、24 frames、motion
 使用者回報成功提示後回中央像是成果消失、視窗和文字過小。原因是旧卡片勾勾只表示即時狀態；改為獨立每局完成紀錄，保留最後成功與全部招式進度。未降低動作門檻或取消回中央才能再次閃避的規則。
 
 本機實際瀏覽器檢查：1366×768、1920×1080、580×800、390×844 都沒有橫向溢出。校正版型的鏡頭寬度分別約 361、594、440、314 px；主要提示字為 37、50、30、30 px。校正／練習版型採沒有 Camera 影格的靜態測試頁，僅驗證排版，不作為真人辨識證明，測試頁不發布。實際應用的開發模式、合成測試、設定保存與 Refresh、全螢幕按鈕已操作確認，Console 沒有錯誤。新 UI 的真人距離可讀性與實際 Webcam 動作仍待使用者確認。
+
+## 2026-10-09 滿版視訊與小步跑修正
+
+依使用者真人回饋改為單一滿版視訊舞台，全部動作文字與成果疊在舞台內；加寬有效框，預設顯示黃／藍節點與亮黃辨識框。沿用同一 CameraManager 與 PoseManager，沒有新增 Camera Engine，也沒有錄影或上傳影像。
+
+本機 48 項自動測試通過。實際瀏覽器操作確認新版 UI、合成小步跑與其餘四招程式測試、預設節點開啟，Console 無錯誤。版型與繪圖採相同 TrackingOverlay 的合成節點測試頁，檢查亮黃／藍框、手腕越界、1366×768、1920×1080、1366×650、390×844；測試頁及圖片不發布，不能當真人辨識證明。真人小步跑的成功率與遠距可讀性仍需實際 Webcam 確認。

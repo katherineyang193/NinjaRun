@@ -6,7 +6,7 @@ export class MotionDetector {
     this.state='CENTER';this.previous=null;this.smooth=null;this.lastTime=null;
     this.gates={};this.cooldown={jump:-Infinity,crouch:-Infinity,dodge:-Infinity};
     this.jumpArmed=true;this.crouchArmed=true;this.dodgeArmed=true;
-    this.stepSide=null;this.stepArmed=true;this.steps=[];this.runIntensity=0;
+    this.stepSide=null;this.steps=[];this.runIntensity=0;this.runThreshold=.014;
   }
   confirm(key, condition, now, ms=75, frames=3) {
     if(!condition){delete this.gates[key];return false;}
@@ -51,24 +51,31 @@ export class MotionDetector {
     const crouching=!jumping&&crouchConfirmed;
     if(!jumping&&!crouching&&dodgeConfirmed&&this.dodgeArmed&&now-this.cooldown.dodge>=420){events.push(dodgeSide);this.dodgeArmed=false;this.cooldown.dodge=now;}
     const dodging=!jumping&&!crouching&&lateral&&!this.dodgeArmed;
-    if(jumping||crouching||dodging){this.steps=[];this.stepSide=null;this.stepArmed=true;this.runIntensity=0;}
+    if(jumping||crouching||dodging){this.steps=[];this.stepSide=null;this.runIntensity=0;delete this.gates.step_left;delete this.gates.step_right;}
     else {
       const diff=f.leftLift-f.rightLift;
-      if(Math.abs(diff)<.016)this.stepArmed=true;
-      const side=diff>.028&&f.leftLift>.025?'left':diff<-.028&&f.rightLift>.025?'right':null;
-      if(this.confirm('step_'+side,!!side,now,45,2)&&side!==this.stepSide){
-        if(this.steps.length&&now-this.steps.at(-1).time<170){/* Reject landmark flicker. */}
-        else {this.steps.push({side,time:now});this.stepSide=side;this.stepArmed=false;}
+      this.runThreshold=Math.max(.014,(input.runNoise??0)*3.5);
+      const exit=this.runThreshold*.45;
+      let side=diff>this.runThreshold&&f.leftLift>.009?'left':diff<-this.runThreshold&&f.rightLift>.009?'right':null;
+      // Hysteresis keeps a candidate through small dips, but cannot create a new step.
+      if(!side&&this.gates.step_left&&diff>exit&&f.leftLift>.006)side='left';
+      if(!side&&this.gates.step_right&&diff<-exit&&f.rightLift>.006)side='right';
+      const rawDiff=input.leftLift-input.rightLift;
+      if(side&&(Math.sign(rawDiff)!==(side==='left'?1:-1)||Math.abs(rawDiff)<exit))side=null;
+      if(this.confirm('step_'+side,!!side,now,35,2)&&side!==this.stepSide){
+        if(this.steps.length&&now-this.steps.at(-1).time<150){/* Reject landmark flicker. */}
+        else {this.steps.push({side,time:now});this.stepSide=side;}
       }
       for(const other of ['left','right'])if(other!==side)delete this.gates['step_'+other];
-      this.steps=this.steps.filter(s=>now-s.time<1600);
-      const running=this.steps.length>=3&&now-this.steps.at(-1).time<750;
+      this.steps=this.steps.filter(s=>now-s.time<2400);
+      if(!this.steps.length)this.stepSide=null;
+      const running=this.steps.length>=3&&now-this.steps.at(-1).time<1150;
       this.runIntensity=running?clamp(.4+(this.steps.length-3)*.12):0;
     }
     const running=this.runIntensity>0;
     const next=jumping?'JUMPING':crouching?'CROUCHING':dodging?dodgeSide:running?'RUNNING':'CENTER';
     if(next==='RUNNING'&&this.state!=='RUNNING')events.push('RUN');
     this.state=next;
-    return {state:next,runState:running?'RUNNING':'IDLE',runIntensity:this.runIntensity,events,features:f};
+    return {state:next,runState:running?'RUNNING':'IDLE',runIntensity:this.runIntensity,stepCount:this.steps.length,runThreshold:this.runThreshold,events,features:f};
   }
 }

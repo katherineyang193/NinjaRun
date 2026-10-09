@@ -15,6 +15,7 @@ export class PlayerCoordinateMapper {
       hipRise:(baseline.baselineHipY-features.hipY)/scale,
       shoulderRise:(baseline.baselineShoulderY-features.shoulderY)/scale,
       baselineLeg:(baseline.baselineLeftLeg+baseline.baselineRightLeg)/2,
+      runNoise:baseline.baselineRunNoise??0,
       leftLift:(baseline.baselineLeftLeg-features.leftLeg)/scale,
       rightLift:(baseline.baselineRightLeg-features.rightLeg)/scale
     };

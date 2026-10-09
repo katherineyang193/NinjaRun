@@ -5,7 +5,7 @@ export function syntheticTrace(action){
   const frames=[];let time=0;
   const hold=(changes,n)=>{for(let i=0;i<n;i++){time+=40;frames.push({f:{...neutral(),...changes},time});}};
   hold({},10);
-  if(action==='RUN'){for(let i=0;i<5;i++){hold(i%2?{rightLift:.09}:{leftLift:.09},5);hold({},4);}}
+  if(action==='RUN'){for(let i=0;i<5;i++){hold(i%2?{rightLift:.022}:{leftLift:.022},5);hold({},4);}}
   if(action==='JUMP'){hold({hipRise:.14,shoulderRise:.14},8);hold({},12);}
   if(action==='CROUCH')hold({hipRise:-.16,shoulderRise:-.14,kneeAngle:130,hipY:.66},10);
   if(action==='DODGE_LEFT')hold({playerX:-.22,playerShoulderX:-.2},10);

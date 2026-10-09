@@ -63,10 +63,12 @@ export class CalibrationManager {
       const stable=keys.every(key=>Math.max(...this.samples.map(s=>s[key]))-Math.min(...this.samples.map(s=>s[key]))<.028);
       if (this.samples.length===24&&stable&&now-this.samples[0].time>=750) {
         const avg=key=>this.samples.reduce((sum,s)=>sum+s[key],0)/this.samples.length;
+        const legDiff=avg('leftLeg')-avg('rightLeg');
+        const runNoise=Math.sqrt(this.samples.reduce((sum,s)=>sum+((s.leftLeg-s.rightLeg)-legDiff)**2,0)/this.samples.length)/avg('bodyHeight');
         this.baseline={baselineHipX:avg('hipX'),baselineHipY:avg('hipY'),
           baselineShoulderX:avg('shoulderX'),baselineShoulderY:avg('shoulderY'),
           baselineKneeY:avg('kneeY'),baselineBodyHeight:avg('bodyHeight'),
-          baselineLeftLeg:avg('leftLeg'),baselineRightLeg:avg('rightLeg'),frames:24};
+          baselineLeftLeg:avg('leftLeg'),baselineRightLeg:avg('rightLeg'),baselineRunNoise:runNoise,frames:24};
         this.phase='READY';
       }
     }

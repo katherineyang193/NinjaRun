@@ -1,7 +1,7 @@
 const labels={RUN:'跑！',JUMP:'跳！',CROUCH:'蹲！',DODGE_LEFT:'你的左邊',DODGE_RIGHT:'你的右邊'};
 const arrows={JUMP:'↑',CROUCH:'↓',DODGE_LEFT:'←',DODGE_RIGHT:'→'};
 const runner='<svg viewBox="0 0 120 120" aria-hidden="true"><circle cx="72" cy="19" r="10" fill="currentColor"/><path d="M61 37 47 62 68 76 85 102 M49 62 28 89 10 89 M59 42 81 54 105 44 M59 42 35 35 16 52" fill="none" stroke="currentColor" stroke-width="12" stroke-linecap="round" stroke-linejoin="round"/></svg><div class="feet" aria-hidden="true"><span>◖</span><span>◗</span></div>';
-export function promptIcon(action){return action==='RUN'?runner:arrows[action]??'';}
+export function promptIcon(action){if(action==='RUN')return runner;if(!arrows[action])return '';const angle={JUMP:0,CROUCH:180,DODGE_LEFT:-90,DODGE_RIGHT:90}[action];return `<svg viewBox="0 0 120 120" aria-hidden="true"><g transform="rotate(${angle} 60 60)"><path d="M60 104V18M24 52L60 16L96 52" fill="none" stroke="currentColor" stroke-width="14" stroke-linecap="round" stroke-linejoin="round"/></g></svg>`;}
 export class PromptView {
   constructor(root){this.root=root;this.key='';}
   update(snapshot,paused=false){const {promptState,currentPrompt,nextPrompt,combo}=snapshot;const key=JSON.stringify([promptState,currentPrompt,nextPrompt,paused,combo]);if(key===this.key)return;this.key=key;

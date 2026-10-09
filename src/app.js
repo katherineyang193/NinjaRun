@@ -12,7 +12,7 @@ import {AudioManager} from './audio/AudioManager.js';
 import {runSelfTest} from './dev/self-test.js';
 import {bodyInSafeFrame,drawTrackingOverlay} from './ui/TrackingOverlay.js';
 import {PromptSequence} from './game/PromptSequence.js';
-import {PromptView} from './ui/PromptView.js';
+import {PromptView} from './ui/PromptView.js?v=prompt2';
 const $=id=>document.getElementById(id);
 const settings=new SettingsManager(),mirror=new MirrorController(settings),calibration=new CalibrationManager();
 const tracking=new TrackingManager(),detector=new MotionDetector(settings.value),audio=new AudioManager(settings);

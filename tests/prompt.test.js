@@ -17,7 +17,7 @@ test('all five actions score only during active and level remains 64 seconds',()
  assert.equal(p.time,64000);assert.equal(p.state,'FINISHED');assert.equal(p.bestCombo,8);assert.ok(p.report().every(r=>r.rate===100));
 });
 test('misses, discontinuous running, and jump disabled reports are honest',()=>{
- const p=new PromptSequence({jumpEnabled:false});p.advance(2000);p.observe(movement('RUN'),100);p.observe(movement('CENTER'),100);assert.equal(p.runHeld,0);
+ const p=new PromptSequence({jumpEnabled:false});p.advance(2000);p.observe(movement('RUN'),100);for(let i=0;i<3;i++)p.observe(movement('CENTER'),100);assert.equal(p.runHeld,0);
  p.advance(62000);assert.equal(p.state,'FINISHED');assert.ok(!p.order.includes('JUMP'));assert.equal(p.report().find(r=>r.action==='JUMP').rate,null);assert.ok(p.report().filter(r=>r.attempts).every(r=>r.rate===0));
 });
 test('prompt size survives saved settings and invalid size uses large',()=>{
@@ -32,4 +32,14 @@ test('real MotionDetector outputs feed each active prompt, rather than button si
  if(action==='RUN'){for(let i=0;i<60;i++){const f={...trace[0].f,leftLift:Math.floor(i/5)%2?.022:0,rightLift:Math.floor(i/5)%2?0:.022};p.observe(d.update(f,trace.at(-1).time+(i+1)*40,true),40);}}
  assert.equal(p.state,'SUCCESS',action);p.advance(6000);}
  assert.equal(p.report().filter(r=>r.rate===100).length,5);
+});
+test('short neutral detection dips preserve earned RUN time without adding false time',()=>{
+ const p=new PromptSequence();p.advance(2000);for(let i=0;i<6;i++)p.observe(movement('RUN'),100);
+ p.observe(movement('CENTER'),100);p.observe(movement('CENTER'),100);assert.equal(p.runHeld,600);assert.equal(p.snapshot().runProgress,.6);
+ for(let i=0;i<3;i++)assert.equal(p.observe(movement('RUN'),100),false);assert.equal(p.observe(movement('RUN'),100),true);
+});
+test('long stops and other actions clear RUN progress; isolated bursts do not succeed',()=>{
+ for(const stop of ['CENTER','LOST_TRACKING','CROUCHING']){const p=new PromptSequence();p.advance(2000);
+ for(let burst=0;burst<5;burst++){p.observe(movement('RUN'),100);for(let i=0;i<3;i++)p.observe({state:stop,runState:'IDLE',events:[]},100);}
+ assert.equal(p.state,'ACTIVE');assert.equal(p.runHeld,0);}
 });

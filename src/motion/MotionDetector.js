@@ -6,7 +6,7 @@ export class MotionDetector {
     this.state='CENTER';this.previous=null;this.smooth=null;this.lastTime=null;
     this.gates={};this.cooldown={jump:-Infinity,crouch:-Infinity,dodge:-Infinity};
     this.jumpArmed=true;this.crouchArmed=true;this.dodgeArmed=true;
-    this.stepSide=null;this.steps=[];this.runIntensity=0;this.runThreshold=.014;
+    this.stepSide=null;this.steps=[];this.runIntensity=0;this.runThreshold=.010;
   }
   confirm(key, condition, now, ms=75, frames=3) {
     if(!condition){delete this.gates[key];return false;}
@@ -54,12 +54,14 @@ export class MotionDetector {
     if(jumping||crouching||dodging){this.steps=[];this.stepSide=null;this.runIntensity=0;delete this.gates.step_left;delete this.gates.step_right;}
     else {
       const diff=f.leftLift-f.rightLift;
-      this.runThreshold=Math.max(.014,(input.runNoise??0)*3.5);
+      // Small steps at full-body camera distance are enough. A slightly moving
+      // calibration must not raise the threshold without limit.
+      this.runThreshold=Math.max(.010,Math.min(.024,(input.runNoise??0)*2.2));
       const exit=this.runThreshold*.45;
-      let side=diff>this.runThreshold&&f.leftLift>.009?'left':diff<-this.runThreshold&&f.rightLift>.009?'right':null;
+      let side=diff>this.runThreshold&&f.leftLift>.006?'left':diff<-this.runThreshold&&f.rightLift>.006?'right':null;
       // Hysteresis keeps a candidate through small dips, but cannot create a new step.
-      if(!side&&this.gates.step_left&&diff>exit&&f.leftLift>.006)side='left';
-      if(!side&&this.gates.step_right&&diff<-exit&&f.rightLift>.006)side='right';
+      if(!side&&this.gates.step_left&&diff>exit&&f.leftLift>.004)side='left';
+      if(!side&&this.gates.step_right&&diff<-exit&&f.rightLift>.004)side='right';
       const rawDiff=input.leftLift-input.rightLift;
       if(side&&(Math.sign(rawDiff)!==(side==='left'?1:-1)||Math.abs(rawDiff)<exit))side=null;
       if(this.confirm('step_'+side,!!side,now,35,2)&&side!==this.stepSide){
@@ -67,7 +69,7 @@ export class MotionDetector {
         else {this.steps.push({side,time:now});this.stepSide=side;}
       }
       for(const other of ['left','right'])if(other!==side)delete this.gates['step_'+other];
-      this.steps=this.steps.filter(s=>now-s.time<2400);
+      this.steps=this.steps.filter(s=>now-s.time<3400);
       if(!this.steps.length)this.stepSide=null;
       const running=this.steps.length>=3&&now-this.steps.at(-1).time<1150;
       this.runIntensity=running?clamp(.4+(this.steps.length-3)*.12):0;

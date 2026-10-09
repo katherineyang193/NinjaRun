@@ -5,14 +5,14 @@ import {MirrorController} from './motion/MirrorController.js';
 import {CalibrationManager} from './motion/CalibrationManager.js';
 import {PlayerCoordinateMapper} from './motion/PlayerCoordinateMapper.js';
 import {TrackingManager} from './motion/TrackingManager.js';
-import {MotionDetector} from './motion/MotionDetector.js';
+import {MotionDetector} from './motion/MotionDetector.js?v=run2';
 import {MotionProgress} from './motion/MotionProgress.js';
 import {poseFeatures} from './motion/pose-features.js';
 import {AudioManager} from './audio/AudioManager.js';
 import {runSelfTest} from './dev/self-test.js';
 import {bodyInSafeFrame,drawTrackingOverlay} from './ui/TrackingOverlay.js';
-import {PromptSequence} from './game/PromptSequence.js';
-import {PromptView} from './ui/PromptView.js?v=prompt2';
+import {PromptSequence} from './game/PromptSequence.js?v=run2';
+import {PromptView} from './ui/PromptView.js?v=run2';
 const $=id=>document.getElementById(id);
 const settings=new SettingsManager(),mirror=new MirrorController(settings),calibration=new CalibrationManager();
 const tracking=new TrackingManager(),detector=new MotionDetector(settings.value),audio=new AudioManager(settings);
@@ -64,7 +64,7 @@ function processPose(lm,now){
   lastPoseTime=performance.now();landmarks=lm;features=poseFeatures(lm,aspect);
   const result=tracking.update(bodyInSafeFrame(lm)?features:null,now);trackingPaused=result.paused;
   $('trackingStatus').textContent=result.message;
-  if(trackingPaused){lastMotionTime=null;if(sequence)sequence.runHeld=0;motion=detector.lost();countdownAt=null;
+  if(trackingPaused){lastMotionTime=null;if(sequence){sequence.runHeld=0;sequence.runGap=0;}motion=detector.lost();countdownAt=null;
     if(phase==='CALIBRATION')calibration.update(null,now);
     if(phase==='PLAYING'||phase==='COUNTDOWN'||phase==='CALIBRATION')message('回到框框裡～','找到你的身體就會繼續，不會扣分。');return;}
   if(phase==='CALIBRATION'){
@@ -137,7 +137,7 @@ function frame(now){
       `mirrorMode: ${settings.value.mirrorMode}   displayMirrored: ${mirror.displayMirrored}   mirrorDirection: ${mirror.mirrorDirection??'uncalibrated'}`,
       `Player right raw sign: ${mapper?.calibration.playerRightSign??'—'}   Player X: ${v(motion.features?.playerX)}`,
       `trackingState: ${trackingPaused?'LOST_TRACKING':'TRACKING'}   phase: ${phase}`,
-      ...(sequence&&playMode==='guided'?[`promptState: ${sequence.state}   currentPrompt: ${sequence.snapshot().currentPrompt}   nextPrompt: ${sequence.snapshot().nextPrompt.join(',')}`,`promptStartTime: ${sequence.snapshot().promptStartTime}ms   activeWindow: ${sequence.snapshot().activeWindow.join('–')}ms`, `motionDetected: ${sequence.motionDetected??'—'}   successTimestamp: ${sequence.successTimestamp??'—'}ms`]:[]),
+      ...(sequence&&playMode==='guided'?[`promptState: ${sequence.state}   currentPrompt: ${sequence.snapshot().currentPrompt}   nextPrompt: ${sequence.snapshot().nextPrompt.join(',')}`,`promptStartTime: ${sequence.snapshot().promptStartTime}ms   activeWindow: ${sequence.snapshot().activeWindow.join('–')}ms`, `motionDetected: ${sequence.motionDetected??'—'}   successTimestamp: ${sequence.successTimestamp??'—'}ms`, `RUN progress: ${sequence.runHeld.toFixed(0)}/1000ms   missed sample gap: ${sequence.runGap.toFixed(0)}ms`]:[]),
       Object.keys(names).map(a=>`${a}: ${progress.counts[a]}`).join('   '),settings.warning].filter(Boolean).join('\n');}
     drawSkeleton();
   }

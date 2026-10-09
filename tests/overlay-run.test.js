@@ -58,3 +58,16 @@ test('common body bobbing and alternating one-frame spikes cannot run',()=>{
   assert.ok(!runTrace({lift:0,common:.06}).events.includes('RUN'));
   assert.ok(!runTrace({lift:.08,singleFrame:true}).events.includes('RUN'));
 });
+test('very small alternating steps are accepted at 15 FPS, and quiet jitter is rejected',()=>{
+ const small=runTrace({dt:67,lift:.012,frames:5,noise:.001});assert.ok(small.events.includes('RUN'));assert.equal(small.latest.runState,'RUNNING');
+ assert.ok(!runTrace({dt:67,lift:.008,frames:5,noise:.001}).events.includes('RUN'));
+});
+test('calibration noise has a bounded threshold and slower alternating steps stay running',()=>{
+ const noisy=runTrace({noise:.02,lift:.04,frames:6});assert.ok(noisy.events.includes('RUN'));assert.equal(noisy.latest.runThreshold,.024);
+ const d=new MotionDetector();let now=0,started=false,dropouts=0;
+ for(let cycle=0;cycle<8;cycle++)for(let i=0;i<11;i++){
+ const lift=i<9?.025:0;const f={...neutral(),leftLift:cycle%2?0:lift,rightLift:cycle%2?lift:0};const m=d.update(f,now+=100);
+ if(m.runState==='RUNNING')started=true;else if(started)dropouts++;
+ }
+ assert.ok(started);assert.equal(dropouts,0);
+});

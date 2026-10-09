@@ -15,23 +15,25 @@ function angle(a, b, c, aspect) {
   const size = Math.hypot(...u)*Math.hypot(...v);
   return size > .00001 ? Math.acos(Math.max(-1,Math.min(1,(u[0]*v[0]+u[1]*v[1])/size)))*180/Math.PI : null;
 }
-export function poseFeatures(landmarks, aspect = 4/3) {
+export function poseFeatures(landmarks, aspect = 4/3, {allowLowerBodyMissing=false}={}) {
   if (!Array.isArray(landmarks) || landmarks.length < 29) return null;
   const p = Object.fromEntries(Object.entries(LANDMARK).map(([key,index])=>[key,landmarks[index]]));
-  const required = ['head','leftShoulder','rightShoulder','leftHip','rightHip','leftKnee','rightKnee'];
+  const required = ['head','leftShoulder','rightShoulder','leftHip','rightHip'];
+  const lowerBodyVisible=visible(p.leftKnee)&&visible(p.rightKnee);
+  if(!allowLowerBodyMissing&&!lowerBodyVisible)return null;
   if (!required.every(key => visible(p[key]))) return null;
   const hipX=mean(p.leftHip.x,p.rightHip.x), hipY=mean(p.leftHip.y,p.rightHip.y);
   const shoulderX=mean(p.leftShoulder.x,p.rightShoulder.x), shoulderY=mean(p.leftShoulder.y,p.rightShoulder.y);
-  const kneeY=mean(p.leftKnee.y,p.rightKnee.y);
+  const kneeY=lowerBodyVisible?mean(p.leftKnee.y,p.rightKnee.y):null;
   const anklesVisible=visible(p.leftAnkle)&&visible(p.rightAnkle);
-  const ankleY=anklesVisible?mean(p.leftAnkle.y,p.rightAnkle.y):kneeY+(kneeY-hipY)*.95;
-  return {p, hipX, hipY, shoulderX, shoulderY, kneeY, ankleY, anklesVisible,
-    bodyHeight: Math.max(.15,ankleY-p.head.y),
+  const ankleY=anklesVisible?mean(p.leftAnkle.y,p.rightAnkle.y):lowerBodyVisible?kneeY+(kneeY-hipY)*.95:null;
+  return {p, hipX, hipY, shoulderX, shoulderY, kneeY, ankleY, anklesVisible,lowerBodyVisible,
+    bodyHeight: ankleY===null?null:Math.max(.15,ankleY-p.head.y),
     torsoHeight: hipY-shoulderY,
-    leftLeg: p.leftKnee.y-p.leftHip.y, rightLeg:p.rightKnee.y-p.rightHip.y,
+    leftLeg:lowerBodyVisible?p.leftKnee.y-p.leftHip.y:null, rightLeg:lowerBodyVisible?p.rightKnee.y-p.rightHip.y:null,
     kneeAngle: Math.min(angle(p.leftHip,p.leftKnee,p.leftAnkle,aspect)??180,
       angle(p.rightHip,p.rightKnee,p.rightAnkle,aspect)??180),
-    confidence: Math.min(...required.map(key=>Math.min(p[key].visibility??0,p[key].presence??1)))
+    confidence: Math.min(...[...required,...(lowerBodyVisible?['leftKnee','rightKnee']:[])].map(key=>Math.min(p[key].visibility??0,p[key].presence??1)))
   };
 }
 export function standingCheck(f) {

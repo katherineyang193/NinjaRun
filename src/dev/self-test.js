@@ -1,4 +1,4 @@
-import { MotionDetector } from '../motion/MotionDetector.js';
+import { MotionDetector } from '../motion/MotionDetector.js?v=body3';
 export const neutral=()=>({playerX:0,playerShoulderX:0,hipRise:0,shoulderRise:0,
   leftLift:0,rightLift:0,kneeAngle:180,kneeY:.75,hipY:.55,baselineLeg:.2});
 export function syntheticTrace(action){

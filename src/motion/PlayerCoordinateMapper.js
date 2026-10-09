@@ -16,8 +16,8 @@ export class PlayerCoordinateMapper {
       shoulderRise:(baseline.baselineShoulderY-features.shoulderY)/scale,
       baselineLeg:(baseline.baselineLeftLeg+baseline.baselineRightLeg)/2,
       runNoise:baseline.baselineRunNoise??0,
-      leftLift:(baseline.baselineLeftLeg-features.leftLeg)/scale,
-      rightLift:(baseline.baselineRightLeg-features.rightLeg)/scale
+      leftLift:Number.isFinite(features.leftLeg)?(baseline.baselineLeftLeg-features.leftLeg)/scale:0,
+      rightLift:Number.isFinite(features.rightLeg)?(baseline.baselineRightLeg-features.rightLeg)/scale:0
     };
   }
   toDisplayX(rawX, mirrorDisplay) { return mirrorDisplay ? 1-rawX : rawX; }

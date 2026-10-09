@@ -7,6 +7,7 @@ export class MotionDetector {
     this.gates={};this.cooldown={jump:-Infinity,crouch:-Infinity,dodge:-Infinity};
     this.jumpArmed=true;this.crouchArmed=true;this.dodgeArmed=true;
     this.stepSide=null;this.steps=[];this.runIntensity=0;this.runThreshold=.010;
+    this.lastLegTime=null;
   }
   confirm(key, condition, now, ms=75, frames=3) {
     if(!condition){delete this.gates[key];return false;}
@@ -34,12 +35,13 @@ export class MotionDetector {
     if(this.confirm('crouchReset',f.hipRise>-.045&&f.shoulderRise>-.065,now,110))this.crouchArmed=true;
     if(this.confirm('dodgeReset',Math.abs(f.playerX)<.055&&Math.abs(f.playerShoulderX)<.075,now,120))this.dodgeArmed=true;
     // Both shoulders and hips rise together; a fast ascent distinguishes straightening.
-    const jump=f.hipRise>.065&&f.shoulderRise>.055&&Math.abs(f.hipRise-f.shoulderRise)<.09;
+    const legsVisible=input.lowerBodyVisible!==false;
+    const jump=legsVisible&&f.hipRise>.065&&f.shoulderRise>.055&&Math.abs(f.hipRise-f.shoulderRise)<.09;
     if(jump&&hipVelocity>.22)this.gates.jumpVelocity=now;
     const jumpConfirmed=this.confirm('jump',jump,now,65)&&now-(this.gates.jumpVelocity??-Infinity)<240;
-    const crouch=f.hipRise<-.085&&f.shoulderRise<-.07&&(f.kneeAngle<157||f.kneeY-f.hipY < input.baselineLeg*.72);
+    const crouch=f.hipRise<-.065&&f.shoulderRise<-.055&&Math.abs(f.hipRise-f.shoulderRise)<.12;
     const crouchConfirmed=this.confirm('crouch',crouch,now,100);
-    const lateral=Math.abs(f.playerX)>.12&&Math.abs(f.playerShoulderX)>.085&&Math.sign(f.playerX)===Math.sign(f.playerShoulderX);
+    const lateral=legsVisible&&Math.abs(f.playerX)>.12&&Math.abs(f.playerShoulderX)>.085&&Math.sign(f.playerX)===Math.sign(f.playerShoulderX);
     const dodgeSide=f.playerX<0?'DODGE_LEFT':'DODGE_RIGHT';
     const dodgeConfirmed=this.confirm('dodge_'+dodgeSide,lateral,now,95);
     this.confirm('dodge_'+(dodgeSide==='DODGE_LEFT'?'DODGE_RIGHT':'DODGE_LEFT'),false,now);
@@ -52,16 +54,22 @@ export class MotionDetector {
     if(!jumping&&!crouching&&dodgeConfirmed&&this.dodgeArmed&&now-this.cooldown.dodge>=420){events.push(dodgeSide);this.dodgeArmed=false;this.cooldown.dodge=now;}
     const dodging=!jumping&&!crouching&&lateral&&!this.dodgeArmed;
     if(jumping||crouching||dodging){this.steps=[];this.stepSide=null;this.runIntensity=0;delete this.gates.step_left;delete this.gates.step_right;}
-    else {
+    else if(!legsVisible){
+      // Preserve the rhythm through a brief knee occlusion, without awarding
+      // running time while knees are unavailable.
+      this.runIntensity=0;delete this.gates.step_left;delete this.gates.step_right;
+      if(this.lastLegTime===null||now-this.lastLegTime>250){this.steps=[];this.stepSide=null;}
+    }else {
+      this.lastLegTime=now;
       const diff=f.leftLift-f.rightLift;
       // Small steps at full-body camera distance are enough. A slightly moving
       // calibration must not raise the threshold without limit.
       this.runThreshold=Math.max(.010,Math.min(.024,(input.runNoise??0)*2.2));
       const exit=this.runThreshold*.45;
-      let side=diff>this.runThreshold&&f.leftLift>.006?'left':diff<-this.runThreshold&&f.rightLift>.006?'right':null;
+      let side=diff>this.runThreshold?'left':diff<-this.runThreshold?'right':null;
       // Hysteresis keeps a candidate through small dips, but cannot create a new step.
-      if(!side&&this.gates.step_left&&diff>exit&&f.leftLift>.004)side='left';
-      if(!side&&this.gates.step_right&&diff<-exit&&f.rightLift>.004)side='right';
+      if(!side&&this.gates.step_left&&diff>exit)side='left';
+      if(!side&&this.gates.step_right&&diff<-exit)side='right';
       const rawDiff=input.leftLift-input.rightLift;
       if(side&&(Math.sign(rawDiff)!==(side==='left'?1:-1)||Math.abs(rawDiff)<exit))side=null;
       if(this.confirm('step_'+side,!!side,now,35,2)&&side!==this.stepSide){

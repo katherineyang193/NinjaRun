@@ -3,14 +3,14 @@ import {PoseManager} from './pose/PoseManager.js';
 import {SettingsManager} from './settings/SettingsManager.js?v=prompt1';
 import {MirrorController} from './motion/MirrorController.js';
 import {CalibrationManager} from './motion/CalibrationManager.js';
-import {PlayerCoordinateMapper} from './motion/PlayerCoordinateMapper.js';
+import {PlayerCoordinateMapper} from './motion/PlayerCoordinateMapper.js?v=body3';
 import {TrackingManager} from './motion/TrackingManager.js';
-import {MotionDetector} from './motion/MotionDetector.js?v=run2';
+import {MotionDetector} from './motion/MotionDetector.js?v=body3';
 import {MotionProgress} from './motion/MotionProgress.js';
-import {poseFeatures} from './motion/pose-features.js';
+import {poseFeatures} from './motion/pose-features.js?v=body3';
 import {AudioManager} from './audio/AudioManager.js';
-import {runSelfTest} from './dev/self-test.js';
-import {bodyInSafeFrame,drawTrackingOverlay} from './ui/TrackingOverlay.js';
+import {runSelfTest} from './dev/self-test.js?v=body3';
+import {bodyTrackable,drawTrackingOverlay} from './ui/TrackingOverlay.js?v=body3';
 import {PromptSequence} from './game/PromptSequence.js?v=run2';
 import {PromptView} from './ui/PromptView.js?v=run2';
 const $=id=>document.getElementById(id);
@@ -61,8 +61,8 @@ function recalibrate(){
   $('dojo').classList.add('calibrating');applySettings();message('站在框框裡，重新看看你的左右','請面向鏡頭。');
 }
 function processPose(lm,now){
-  lastPoseTime=performance.now();landmarks=lm;features=poseFeatures(lm,aspect);
-  const result=tracking.update(bodyInSafeFrame(lm)?features:null,now);trackingPaused=result.paused;
+  lastPoseTime=performance.now();landmarks=lm;features=poseFeatures(lm,aspect,{allowLowerBodyMissing:phase==='PLAYING'});
+  const result=tracking.update(bodyTrackable(lm,phase==='PLAYING')?features:null,now);trackingPaused=result.paused;
   $('trackingStatus').textContent=result.message;
   if(trackingPaused){lastMotionTime=null;if(sequence){sequence.runHeld=0;sequence.runGap=0;}motion=detector.lost();countdownAt=null;
     if(phase==='CALIBRATION')calibration.update(null,now);
@@ -101,8 +101,8 @@ function finish(){const promptReport=playMode==='guided'?sequence.report():null;
 }
 function drawSkeleton(){
   if($('cameraBox').hidden)return;
-  drawTrackingOverlay($('skeleton'),$('safeZone'),{landmarks,tracked:!trackingPaused,fresh:camera.active&&performance.now()-lastPoseTime<=450,mirrored:mirror.displayMirrored,aspect,enabled:$('skeletonToggle').checked});
-  $('frameStatus').textContent=trackingPaused?'◇ 請讓頭、髖部和膝蓋入鏡':'✓ 已辨識到身體';
+  drawTrackingOverlay($('skeleton'),$('safeZone'),{landmarks,tracked:!trackingPaused,fresh:camera.active&&performance.now()-lastPoseTime<=450,mirrored:mirror.displayMirrored,aspect,enabled:$('skeletonToggle').checked,allowLowerBodyMissing:phase==='PLAYING'});
+  $('frameStatus').textContent=trackingPaused?'◇ 請讓頭、肩膀和髖部入鏡':features?.lowerBodyVisible===false?'✓ 身體已找到，蹲下也看得到':'✓ 已辨識到身體';
 }
 function frame(now){
   const dt=lastRenderTime===null?0:Math.min(.1,(now-lastRenderTime)/1000);if(dt>0)renderFps=renderFps*.9+.1/dt;lastRenderTime=now;
@@ -133,7 +133,7 @@ function frame(now){
       `Pose confidence: ${v(features?.confidence)}   Hip X: ${v(features?.hipX)}   Hip Y: ${v(features?.hipY)}`,
       `baseline X: ${v(baseline?.baselineHipX)}   baseline Y: ${v(baseline?.baselineHipY)}   average frames: ${baseline?.frames??0}`,
       `motionState: ${motion.state}   runState: ${motion.runState}   runIntensity: ${v(motion.runIntensity)}`,
-      `Run steps: ${motion.stepCount??0}   knee difference: ${v(motion.features?(motion.features.leftLift-motion.features.rightLift):null)}   run threshold: ${v(motion.runThreshold)}`,
+      `Knees visible: ${features?.lowerBodyVisible??'—'}   partial-body tracking: ${phase==='PLAYING'}   Run steps: ${motion.stepCount??0}   knee difference: ${v(motion.features?(motion.features.leftLift-motion.features.rightLift):null)}   run threshold: ${v(motion.runThreshold)}`,
       `mirrorMode: ${settings.value.mirrorMode}   displayMirrored: ${mirror.displayMirrored}   mirrorDirection: ${mirror.mirrorDirection??'uncalibrated'}`,
       `Player right raw sign: ${mapper?.calibration.playerRightSign??'—'}   Player X: ${v(motion.features?.playerX)}`,
       `trackingState: ${trackingPaused?'LOST_TRACKING':'TRACKING'}   phase: ${phase}`,

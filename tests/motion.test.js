@@ -49,8 +49,8 @@ test('one jump is counted once while airborne and cooldown applies',()=>{
   const s=stream();s.hold();s.hold({hipRise:.15,shoulderRise:.15},30);assert.equal(s.events.filter(e=>e==='JUMP').length,1);
   s.hold({},18);s.hold({hipRise:.15,shoulderRise:.15},8);assert.equal(s.events.filter(e=>e==='JUMP').length,2);
 });
-test('crouch needs hips plus shoulders and bent legs, and must stand before repeating',()=>{
-  const s=stream();s.hold();s.hold({hipRise:-.15,shoulderRise:-.14,kneeAngle:180},10);assert.deepEqual(s.events,[]);
+test('crouch needs hips plus shoulders lowering, and must stand before repeating',()=>{
+  const s=stream();s.hold();s.hold({hipRise:-.15,shoulderRise:-.14,kneeAngle:180},10);assert.deepEqual(s.events,['CROUCH']);
   s.hold({hipRise:-.15,shoulderRise:-.14,kneeAngle:140},30);assert.equal(s.events.filter(e=>e==='CROUCH').length,1);
   s.hold({},15);s.hold({hipRise:-.15,shoulderRise:-.14,kneeAngle:140},10);assert.equal(s.events.filter(e=>e==='CROUCH').length,2);
 });

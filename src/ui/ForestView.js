@@ -6,7 +6,7 @@ export class ForestView {
  }
  reset(){this.lastDraw=-Infinity;this.frames=0;this.started=null;this.fps=0;}
  update(s,now,poseFps=0){this.root.dataset.paused=String(s.paused);this.actor.dataset.state=s.characterState;if(s.characterState==='RUN'&&now-this.hudAt>=100)this.actor.style.animationDuration=`${.7/Math.max(.6,s.speed)}s`;
-  const age=s.event?.successTime==null?0:s.time-s.event.successTime,t=Math.max(0,Math.min(1,age/900)),arc=Math.sin(Math.PI*t);
+  const motionAge=s.event?.successTime==null?0:s.time-s.event.successTime,t=Math.max(0,Math.min(1,motionAge/900)),arc=Math.sin(Math.PI*t);
   this.actor.style.transform=s.characterState==='JUMP'?`translateY(${-Math.min(180,this.root.clientHeight*.25)*arc}px)`:s.characterState==='CROUCH'?`scaleY(${1-.45*arc})`:s.characterState==='DODGE_LEFT'?`translateX(${-this.root.clientWidth*.07*arc}px) rotate(${-12*arc}deg)`:s.characterState==='DODGE_RIGHT'?`translateX(${this.root.clientWidth*.07*arc}px) rotate(${12*arc}deg)`:'';
   if(now-this.hudAt>=100){this.hudAt=now;this.root.querySelector('.forest-score').textContent=`★ ${s.score} · ✦ ${s.stars}`;this.root.querySelector('progress').value=s.energy;this.root.querySelector('.forest-combo').textContent=s.combo>1?`COMBO ×${s.combo}`:'';this.root.querySelector('.forest-segment').textContent=s.finalRun?'FINAL RUN · 衝向終點！':`${s.segment.id} · ${s.segment.label}`;}
   if(now-this.lastDraw<(poseFps>0&&poseFps<12?50:33))return;this.lastDraw=now;const start=performance.now();

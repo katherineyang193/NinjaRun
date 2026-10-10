@@ -20,7 +20,7 @@ export class ForestView {
   this.frames++;this.started??=now;if(now>this.started)this.fps=(this.frames-1)*1000/(now-this.started);this.lastCost=performance.now()-start;
  }
  tree(c,x,y,scale,color){c.fillStyle='#967650';c.fillRect(x-9*scale,y-145*scale,18*scale,150*scale);c.fillStyle=color;for(const [dx,dy,r] of [[0,-190,70],[-45,-145,58],[45,-150,60]]){c.beginPath();c.arc(x+dx*scale,y+dy*scale,r*scale,0,Math.PI*2);c.fill();}}
- obstacle(c,e,x,y,time){const success=e.result==='SUCCESS';c.save();c.globalAlpha=success?.65:1;c.strokeStyle='#714e33';c.lineWidth=4;
+ obstacle(c,e,x,y,time){const success=e.result==='SUCCESS';c.save();c.translate(x,y);const scale=Math.max(1.5,Math.min(2.5,this.root.clientHeight/340));c.scale(scale,scale);x=0;y=0;c.globalAlpha=success?.65:1;c.strokeStyle='#714e33';c.lineWidth=4;
   if(e.obstacle==='CRATE'){c.fillStyle='#dba25d';c.fillRect(x-30,y-60,60,60);c.strokeRect(x-30,y-60,60,60);c.beginPath();c.moveTo(x-25,y-55);c.lineTo(x+25,y-5);c.moveTo(x+25,y-55);c.lineTo(x-25,y-5);c.stroke();}
   else if(e.obstacle==='BRANCH'){c.strokeStyle='#926c40';c.lineWidth=18;c.beginPath();c.moveTo(x-65,y-108);c.lineTo(x+65,y-100);c.stroke();c.fillStyle='#80ba67';for(const dx of [-40,0,35]){c.beginPath();c.ellipse(x+dx,y-118,20,10,-.5,0,Math.PI*2);c.fill();}}
   else {c.fillStyle='#879fc9';c.beginPath();c.roundRect(x-35,y-65,70,65,20);c.fill();c.stroke();c.fillStyle='#eaf2ff';c.beginPath();c.arc(x-10,y-46,8,0,Math.PI*2);c.fill();c.fillStyle='#50785c';c.beginPath();c.ellipse(x,y-68,42,15,0,0,Math.PI*2);c.fill();}

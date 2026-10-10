@@ -42,3 +42,15 @@ body[data-mode=forest] .hero-message,body[data-mode=forest] .mission-panel,body[
 @media(prefers-reduced-motion:reduce){.forest-character{animation:none!important}}
 
 #previewReport { white-space: pre-wrap; overflow-wrap: anywhere; }
+
+/* Far-distance motion feedback: larger actor and rhythmic runner. */
+.forest-character{left:9%;width:clamp(170px,28vmin,300px);height:clamp(170px,28vmin,300px)}
+body[data-mode=forest][data-prompt-size=LARGE] .prompt-symbol{width:clamp(210px,36vmin,440px);height:clamp(210px,36vmin,440px)}
+body[data-mode=forest][data-prompt-size=EXTRA_LARGE] .prompt-symbol{width:clamp(240px,42vmin,510px);height:clamp(240px,42vmin,510px)}
+.prompt-stage[data-state=ACTIVE][data-action=RUN] .prompt-symbol>svg{animation:runner-stride .32s ease-in-out infinite alternate;transform-origin:50% 80%}
+.prompt-stage[data-state=ACTIVE][data-action=RUN] .feet{font-size:clamp(42px,7vmin,80px);gap:55px}
+.prompt-stage[data-state=RECOVERY] .prompt-symbol{height:65px!important;min-height:0}.prompt-stage[data-state=RECOVERY] .prompt-symbol::after{content:'◎';font-size:65px;color:#fff}
+@keyframes runner-stride{from{transform:translateY(8px) rotate(-9deg)}to{transform:translateY(-12px) rotate(9deg)}}
+@keyframes ninja-run{from{transform:translateY(5px) rotate(-7deg)}to{transform:translateY(-18px) rotate(7deg)}}
+@media(max-width:680px){.forest-character{left:5%;width:155px;height:155px}body[data-mode=forest] .prompt-symbol{max-height:220px;max-width:220px}}
+@media(prefers-reduced-motion:reduce){.prompt-stage[data-action=RUN] .prompt-symbol>svg{animation:none!important}}

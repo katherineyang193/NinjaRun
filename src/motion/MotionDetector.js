@@ -7,7 +7,7 @@ export class MotionDetector {
     this.gates={};this.cooldown={jump:-Infinity,crouch:-Infinity,dodge:-Infinity};
     this.jumpArmed=true;this.crouchArmed=true;this.dodgeArmed=true;
     this.stepSide=null;this.steps=[];this.runIntensity=0;this.runThreshold=.010;
-    this.lastLegTime=null;
+    this.lastLegTime=null;this.lastSpecialTime=-Infinity;
   }
   confirm(key, condition, now, ms=75, frames=3) {
     if(!condition){delete this.gates[key];return false;}
@@ -22,7 +22,7 @@ export class MotionDetector {
   }
   update(input, now, tracked=true) {
     if(!tracked||!input)return this.lost();
-    if(this.lastTime!==null&&(now<=this.lastTime||now-this.lastTime>300))return this.lost();
+    if(this.lastTime!==null&&(now<=this.lastTime||now-this.lastTime>450))return this.lost();
     const dt=this.lastTime===null?33:now-this.lastTime;this.lastTime=now;
     const alpha=1-Math.exp(-dt/45);
     const keys=['playerX','playerShoulderX','hipRise','shoulderRise','leftLift','rightLift'];
@@ -53,7 +53,7 @@ export class MotionDetector {
     const crouching=!jumping&&crouchConfirmed;
     if(!jumping&&!crouching&&dodgeConfirmed&&this.dodgeArmed&&now-this.cooldown.dodge>=420){events.push(dodgeSide);this.dodgeArmed=false;this.cooldown.dodge=now;}
     const dodging=!jumping&&!crouching&&lateral&&!this.dodgeArmed;
-    if(jumping||crouching||dodging){this.steps=[];this.stepSide=null;this.runIntensity=0;delete this.gates.step_left;delete this.gates.step_right;}
+    if(jumping||crouching||dodging){this.lastSpecialTime=now;this.steps=[];this.stepSide=null;this.runIntensity=0;delete this.gates.step_left;delete this.gates.step_right;}
     else if(!legsVisible){
       // Preserve the rhythm through a brief knee occlusion, without awarding
       // running time while knees are unavailable.
@@ -79,13 +79,16 @@ export class MotionDetector {
       for(const other of ['left','right'])if(other!==side)delete this.gates['step_'+other];
       this.steps=this.steps.filter(s=>now-s.time<3400);
       if(!this.steps.length)this.stepSide=null;
-      const running=this.steps.length>=3&&now-this.steps.at(-1).time<1150;
+      // After a real obstacle action, two fresh alternating feet resume RUN.
+      // Standing still cannot reuse old steps; normal cold start still needs three.
+      const requiredSteps=now-this.lastSpecialTime<4000?2:3;
+      const running=this.steps.length>=requiredSteps&&now-this.steps.at(-1).time<1150;
       this.runIntensity=running?clamp(.4+(this.steps.length-3)*.12):0;
     }
     const running=this.runIntensity>0;
     const next=jumping?'JUMPING':crouching?'CROUCHING':dodging?dodgeSide:running?'RUNNING':'CENTER';
     if(next==='RUNNING'&&this.state!=='RUNNING')events.push('RUN');
     this.state=next;
-    return {state:next,runState:running?'RUNNING':'IDLE',runIntensity:this.runIntensity,stepCount:this.steps.length,runThreshold:this.runThreshold,events,features:f};
+    return {state:next,runState:running?'RUNNING':'IDLE',runIntensity:this.runIntensity,stepCount:this.steps.length,runThreshold:this.runThreshold,runResume:now-this.lastSpecialTime<4000,events,features:f};
   }
 }

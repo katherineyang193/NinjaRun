@@ -54,3 +54,11 @@ body[data-mode=forest][data-prompt-size=EXTRA_LARGE] .prompt-symbol{width:clamp(
 @keyframes ninja-run{from{transform:translateY(5px) rotate(-7deg)}to{transform:translateY(-18px) rotate(7deg)}}
 @media(max-width:680px){.forest-character{left:5%;width:155px;height:155px}body[data-mode=forest] .prompt-symbol{max-height:220px;max-width:220px}}
 @media(prefers-reduced-motion:reduce){.prompt-stage[data-action=RUN] .prompt-symbol>svg{animation:none!important}}
+
+/* Right-side camera stays large without covering the primary cue. */
+body[data-mode=forest] .camera-box{right:1.5%;bottom:12%;width:30%;height:65%;max-width:520px;border:4px solid #a9bad6;border-radius:18px}
+body[data-mode=forest] .camera-caption{right:1.5%;bottom:auto;top:18%;max-width:30%;font-size:clamp(15px,1.2vw,22px)}
+body[data-mode=forest] .prompt-stage{left:35%;width:clamp(300px,38vw,650px)}
+body[data-mode=forest] .forest-hud{right:34%}
+body[data-mode=forest] .start-area{max-width:64%}
+@media(max-width:680px){body[data-mode=forest] .camera-box{width:36%;height:26%;bottom:14%;right:2%}body[data-mode=forest] .camera-caption{top:auto;bottom:41%;max-width:36%;font-size:12px}body[data-mode=forest] .prompt-stage{left:50%;width:90%}body[data-mode=forest] .forest-hud{right:8px}}

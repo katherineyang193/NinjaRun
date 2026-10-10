@@ -10,15 +10,15 @@ export function buildForestTimeline({jumpEnabled=true,difficulty='EASY'}={}){
   const impactTime=activeEnd+200,recovery=type==='JUMP'?2000:type==='CROUCH'?2000:1800;
   rows.push({id:rows.length,type,obstacle:OBSTACLES[type]??null,previewStart:start,previewTime:start,activeStart,activeTime:activeStart,activeEnd,activeWindow:activeEnd-activeStart,impactTime,recoveryEnd:type==='RUN'?impactTime:impactTime+recovery,resolved:false,result:null,successTime:null,firstMotionTime:null,impactResolved:false,attempts:[]});};
  add('RUN',0,11800);
- ['JUMP','CROUCH','DODGE_LEFT','DODGE_RIGHT'].forEach((a,i)=>add(a,12000+i*8000));
- ['JUMP','DODGE_LEFT','CROUCH','DODGE_RIGHT','JUMP'].forEach((a,i)=>add(a,44000+i*8000));
- ['CROUCH','DODGE_RIGHT','DODGE_LEFT'].forEach((a,i)=>add(a,84000+i*8000));
- add('RUN',108000,119800);for(let i=2;i<rows.length;i++){const extra=Math.max(0,6000-(rows[i].previewStart-rows[i-1].recoveryEnd));if(extra)for(let j=i;j<rows.length;j++)for(const key of ['previewStart','previewTime','activeStart','activeTime','activeEnd','impactTime','recoveryEnd'])rows[j][key]+=extra;}return rows;
+ ['JUMP','CROUCH','DODGE_LEFT'].forEach((a,i)=>add(a,12000+i*12000));
+ ['DODGE_RIGHT','JUMP','CROUCH'].forEach((a,i)=>add(a,48000+i*12000));
+ ['DODGE_LEFT','DODGE_RIGHT'].forEach((a,i)=>add(a,84000+i*12000));
+ add('RUN',108000,119800);return rows;
 }
 /** One game clock owns prompts, scoring windows, obstacle positions and impact.
  * Pose observations are stamped with this clock; render timers never score. */
 export class ForestStage {
- constructor(options={}){this.events=buildForestTimeline(options);this.duration=this.events.at(-1).impactTime;this.segments=SEGMENTS.map((row,i)=>({...row,start:i===0?0:this.events[[0,1,5,10][i]].previewStart,end:i===3?this.duration:this.events[[1,5,10][i]].previewStart}));this.time=0;this.score=0;this.energy=20;this.combo=0;this.bestCombo=0;this.stars=0;this.distance=0;this.runTime=0;this.runHeld=0;this.runGap=0;this.idleTime=0;this.centerHeld=0;this.centerReady=true;this.paused=false;this.finished=false;this.speed=.6;this.motion={state:'CENTER',runState:'IDLE',runIntensity:0,events:[]};this.observedEventId=null;this.lastRunSampleTime=null;this.notices=[];this.lastFeedback=null;this.log=[];this.performance={pose:[],render:[]};}
+ constructor(options={}){this.events=buildForestTimeline(options);this.duration=this.events.at(-1).impactTime;this.segments=SEGMENTS.map((row,i)=>({...row,start:i===0?0:this.events[[0,1,4,7][i]].previewStart,end:i===3?this.duration:this.events[[1,4,7][i]].previewStart}));this.time=0;this.score=0;this.energy=20;this.combo=0;this.bestCombo=0;this.stars=0;this.distance=0;this.runTime=0;this.runHeld=0;this.runGap=0;this.idleTime=0;this.centerHeld=0;this.centerReady=true;this.paused=false;this.finished=false;this.speed=.6;this.motion={state:'CENTER',runState:'IDLE',runIntensity:0,events:[]};this.observedEventId=null;this.lastRunSampleTime=null;this.notices=[];this.lastFeedback=null;this.log=[];this.performance={pose:[],render:[]};}
  currentEvent(){return this.events.find(e=>this.time>=e.previewStart&&this.time<e.recoveryEnd)??null;}
  setJumpEnabled(enabled){if(!enabled)for(const e of this.events)if(!e.resolved&&e.type==='JUMP'){e.type='CROUCH';e.obstacle='BRANCH';}}
  pause(value=true){this.paused=value;if(value){this.lastRunSampleTime=null;this.runHeld=0;this.runGap=0;this.motion={state:'LOST_TRACKING',runState:'IDLE',runIntensity:0,events:[]};}}

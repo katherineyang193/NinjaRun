@@ -4,7 +4,7 @@ export class ForestView {
   this.canvas=root.querySelector('canvas');this.actor=root.querySelector('.forest-character');this.actor.querySelector('img').src=new URL('../../assets/ninja.svg',import.meta.url).href;this.lastDraw=-Infinity;this.lastCost=0;this.frames=0;this.started=null;this.fps=0;this.hudAt=-Infinity;
  }
  reset(){this.lastDraw=-Infinity;this.frames=0;this.started=null;this.fps=0;}
- update(s,now,poseFps=0){this.root.dataset.paused=String(s.paused);this.actor.dataset.state=s.characterState;this.actor.style.animationDuration=`${.7/Math.max(.6,s.speed)}s`;
+ update(s,now,poseFps=0){this.root.dataset.paused=String(s.paused);this.actor.dataset.state=s.characterState;if(now-this.hudAt>=100)this.actor.style.animationDuration=`${.7/Math.max(.6,s.speed)}s`;
   if(now-this.hudAt>=100){this.hudAt=now;this.root.querySelector('.forest-score').textContent=`★ ${s.score} · ✦ ${s.stars}`;this.root.querySelector('progress').value=s.energy;this.root.querySelector('.forest-combo').textContent=s.combo>1?`COMBO ×${s.combo}`:'';this.root.querySelector('.forest-segment').textContent=s.finalRun?'FINAL RUN · 衝向終點！':`${s.segment.id} · ${s.segment.label}`;}
   if(now-this.lastDraw<(poseFps>0&&poseFps<12?50:33))return;this.lastDraw=now;const start=performance.now();
   const w=this.root.clientWidth,h=this.root.clientHeight;if(!w||!h)return;const ratio=Math.min(globalThis.devicePixelRatio||1,1.5);if(this.canvas.width!==Math.round(w*ratio)||this.canvas.height!==Math.round(h*ratio)){this.canvas.width=Math.round(w*ratio);this.canvas.height=Math.round(h*ratio);}

@@ -7,7 +7,7 @@ const idle=()=>({state:'CENTER',runState:'IDLE',runIntensity:0,events:[],feature
 const run=()=>({...idle(),state:'RUNNING',runState:'RUNNING',runIntensity:.6});
 const hit=a=>({...idle(),state:a,events:[a]});
 test('RUN-extended four-part timeline has four original obstacles and no overlapping active/recovery windows',()=>{
- for(const difficulty of ['EASY','NORMAL','HARD']){const events=buildForestTimeline({difficulty});assert.equal(events.length,14);assert.equal(SEGMENTS.at(-1).end,120000);
+ for(const difficulty of ['EASY','NORMAL','HARD']){const events=buildForestTimeline({difficulty});assert.equal(events.length,10);assert.equal(SEGMENTS.at(-1).end,120000);
  assert.deepEqual(new Set(events.filter(e=>e.obstacle).map(e=>e.obstacle)),new Set(['CRATE','BRANCH','RIGHT_BLOCK','LEFT_BLOCK']));
  for(let i=0;i<events.length;i++){const e=events[i];assert.ok(e.previewStart<e.activeStart&&e.activeStart<e.activeEnd&&e.activeEnd<e.impactTime);if(i)assert.ok(events[i-1].recoveryEnd<=e.previewStart);}
  }
@@ -23,7 +23,7 @@ test('miss resets combo with only a small energy penalty and never prevents fini
  const s=new ForestStage();s.advance(14000);s.observe(hit('JUMP'),40);assert.equal(s.combo,1);
  s.advance(26000-s.time);const e=s.currentEvent();assert.equal(e.type,'CROUCH');const energy=s.energy;s.advance(e.activeEnd-s.time);assert.equal(e.result,'MISS');assert.equal(s.combo,0);assert.ok(energy-s.energy<6);assert.equal(s.observe(hit('CROUCH'),40),false);
  s.advance(e.impactTime-s.time);assert.equal(s.snapshot().characterState,'HIT');s.advance(501);assert.notEqual(s.snapshot().characterState,'HIT');s.advance(s.duration-s.time);assert.equal(s.finished,true);
- const empty=new ForestStage();empty.advance(empty.duration);assert.equal(empty.report().miss,14);assert.equal(empty.finished,true);assert.ok(empty.report().score>=0);
+ const empty=new ForestStage();empty.advance(empty.duration);assert.equal(empty.report().miss,10);assert.equal(empty.finished,true);assert.ok(empty.report().score>=0);
 });
 test('tracking pause freezes timeline, scenery distance, score, energy and impacts',()=>{
  const s=new ForestStage();s.advance(14500);s.pause();const before=[s.time,s.distance,s.score,s.energy];s.advance(5000);assert.deepEqual([s.time,s.distance,s.score,s.energy],before);assert.equal(s.observe(hit('JUMP'),40),false);
@@ -44,7 +44,7 @@ test('synthetic full level uses real MotionDetector output and all five actions 
  if(e&&e.type!=='RUN'&&s.time>=e.activeStart&&s.time<e.activeStart+600){const changes=({JUMP:{hipRise:.14,shoulderRise:.14},CROUCH:{hipRise:-.12,shoulderRise:-.1},DODGE_LEFT:{playerX:-.22,playerShoulderX:-.2},DODGE_RIGHT:{playerX:.22,playerShoulderX:.2}})[e.type];Object.assign(f,changes);}
  s.observe(d.update(f,s.time,true),40);
  }
- const r=s.report();assert.equal(s.finished,true);assert.equal(r.success,14,JSON.stringify(r.actions));assert.ok(r.actions.every(a=>a.rate===100));assert.ok(r.averageReactionMs>=0);assert.ok(r.latestSuccessTime<=s.duration);assert.equal(r.poseFpsAverage,null);
+ const r=s.report();assert.equal(s.finished,true);assert.equal(r.success,10,JSON.stringify(r.actions));assert.ok(r.actions.every(a=>a.rate===100));assert.ok(r.averageReactionMs>=0);assert.ok(r.latestSuccessTime<=s.duration);assert.equal(r.poseFpsAverage,null);
 });
 test('turning jump off during a level replaces pending jump obstacles, and sprint speed remains bounded',()=>{
  const s=new ForestStage();s.advance(13000);s.setJumpEnabled(false);assert.equal(s.currentEvent().type,'CROUCH');assert.ok(!s.events.some(e=>!e.resolved&&e.type==='JUMP'));
@@ -60,3 +60,7 @@ test('RUN credit excludes preview time and repeated samples without advancing th
 test('obstacle recovery does not rush the player into RUN and leaves at least six seconds of RUN before next preview',()=>{const s=new ForestStage();s.advance(14000);s.observe(hit('JUMP'),40);s.advance(800);assert.equal(s.snapshot().promptState,'RECOVERY');assert.equal(s.snapshot().currentPrompt,null);const e=s.currentEvent();s.advance(e.recoveryEnd-s.time);assert.equal(s.snapshot().currentPrompt,'RUN');assert.ok(s.events[2].previewStart-s.time>=6000);});
 
 test('every obstacle gives six seconds of visible RUN for reaction and detector restart',()=>{for(const difficulty of ['EASY','NORMAL','HARD']){const rows=buildForestTimeline({difficulty});for(let i=1;i<rows.length-1;i++){assert.ok(rows[i+1].previewStart-rows[i].recoveryEnd>=6000);}}});
+
+test('120 second stage matches 40% dodge, 40% jump/crouch, 20% RUN on all difficulties',()=>{for(const difficulty of ['EASY','NORMAL','HARD']){const s=new ForestStage({difficulty});assert.equal(s.duration,120000);assert.equal(s.events.filter(e=>e.type.startsWith('DODGE')).length,4);assert.equal(s.events.filter(e=>['JUMP','CROUCH'].includes(e.type)).length,4);assert.equal(s.events.filter(e=>e.type==='RUN').length,2);}});
+test('RUN reacquires after obstacles with two fresh alternating steps; standing still cannot resume',()=>{for(const type of ['JUMP','CROUCH','DODGE_LEFT','DODGE_RIGHT']){const d=new MotionDetector();let time=0;const sample=f=>d.update(f,time+=40,true);const shape=({JUMP:{hipRise:.14,shoulderRise:.14},CROUCH:{hipRise:-.12,shoulderRise:-.1},DODGE_LEFT:{playerX:-.22,playerShoulderX:-.2},DODGE_RIGHT:{playerX:.22,playerShoulderX:.2}})[type];sample(neutral());for(let i=0;i<10;i++)sample({...neutral(),...shape});for(let i=0;i<14;i++)assert.notEqual(sample(neutral()).runState,'RUNNING');let out;for(const left of [true,false])for(let i=0;i<6;i++)out=sample({...neutral(),leftLift:left?.03:0,rightLift:left?0:.03});assert.equal(out.runState,'RUNNING',type);}});
+test('slower 350ms pose cadence keeps alternating RUN instead of repeatedly resetting tracking',()=>{const d=new MotionDetector();let out;for(let i=0;i<8;i++)out=d.update({...neutral(),leftLift:Math.floor(i/2)%2?.03:0,rightLift:Math.floor(i/2)%2?0:.03},i*350,true);assert.equal(out.runState,'RUNNING');assert.equal(d.update(neutral(),4000,true).state,'LOST_TRACKING');});

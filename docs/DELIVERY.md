@@ -138,3 +138,6 @@ Render FPS、Pose FPS、confidence、Hip X/Y、baseline X/Y、24 frames、motion
 - 膝蓋缺失不再導致整個遊戲暫停。短於250ms可保留跑步歷史，但缺失時間不計跑動、不觸發RUN／JUMP／DODGE；超過250ms清除跑步節奏。CROUCH優先於RUN。
 - 62 項自動測試通過，含 partial pose → tracking → player mapper → motion 的實際資料流程、單獨點頭不通過、腿部基準偏移、遮擋恢復與框線顏色。
 - 尚未取得修正後真人成功率，需用同一鏡頭再測，不能宣稱真人改善已驗收。
+
+## Phase 3 森林试玩关
+2026-10-10 新增104秒森林试玩，保留既有64秒提示挑战与自由练习；沿用既有Camera/Pose、校正与五种动作。实现详情、时序、测试及真人验收限制见 [PHASE3.md](./PHASE3.md)。

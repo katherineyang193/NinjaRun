@@ -8,11 +8,11 @@ export class PromptView {
     this.runProgress=root.querySelector('.run-progress');
   }
   update(snapshot,paused=false){const {promptState,currentPrompt,nextPrompt,combo}=snapshot;
-    this.runProgress.hidden=paused||currentPrompt!=='RUN'||promptState!=='ACTIVE';
+    this.runProgress.hidden=snapshot.showRunProgress===false||paused||currentPrompt!=='RUN'||promptState!=='ACTIVE';
     this.runProgress.querySelector('progress').value=snapshot.runProgress??0;
-    const key=JSON.stringify([promptState,currentPrompt,nextPrompt,paused,combo]);if(key===this.key)return;this.key=key;
+    const key=JSON.stringify([promptState,currentPrompt,nextPrompt,paused,combo,snapshot.waitingForCenter]);if(key===this.key)return;this.key=key;
     this.root.dataset.state=paused?'PAUSED':promptState;this.root.dataset.action=currentPrompt??'';
-    this.root.querySelector('.prompt-phase').textContent=paused?'回到框框裡～':({PREVIEW:'準備',ACTIVE:'現在做！',SUCCESS:'NICE!',MISS:'再試試',FINISHED:'完成！'})[promptState];
+    this.root.querySelector('.prompt-phase').textContent=paused?'回到框框裡～':snapshot.waitingForCenter?'先回中央':({PREVIEW:'準備',ACTIVE:'現在做！',SUCCESS:'NICE!',MISS:'再試試',RECOVERY:'站穩，再跑！',FINISHED:'完成！'})[promptState];
     this.root.querySelector('.prompt-symbol').innerHTML=promptState==='SUCCESS'?'<span class="success-check">✓</span><span class="sparkles" aria-hidden="true">✦　✧　✦</span>':promptIcon(currentPrompt);
     this.root.querySelector('.prompt-label').textContent=paused?'找到身體就繼續':labels[currentPrompt]??'';
     this.root.querySelector('.prompt-next').innerHTML=nextPrompt.map(a=>`<span aria-label="${labels[a]}">${promptIcon(a)}</span>`).join('');

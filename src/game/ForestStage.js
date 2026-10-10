@@ -3,26 +3,20 @@ const clamp=(v,a,b)=>Math.max(a,Math.min(b,v));
 export const SEGMENTS=[{id:'A',label:'起跑暖身',start:0,end:12000},{id:'B',label:'基礎障礙',start:12000,end:44000},{id:'C',label:'連續組合',start:44000,end:84000},{id:'D',label:'最後衝刺',start:84000,end:120000}];
 const OBSTACLES={JUMP:'CRATE',CROUCH:'BRANCH',DODGE_LEFT:'RIGHT_BLOCK',DODGE_RIGHT:'LEFT_BLOCK'};
 export function buildForestTimeline({jumpEnabled=true,difficulty='EASY'}={}){
- const timing=({EASY:{preview:2000,window:6000},NORMAL:{preview:1700,window:5000},HARD:{preview:1400,window:4000}})[difficulty]??{preview:2000,window:1800};
- const rows=[];
- const add=(type,start,runEnd=null)=>{if(type==='JUMP'&&!jumpEnabled)type='CROUCH';
-  const activeStart=start+(type==='RUN'?2000:timing.preview),activeEnd=runEnd??activeStart+timing.window;
-  const impactTime=activeEnd+200,recovery=type==='JUMP'?2000:type==='CROUCH'?2000:1800;
-  rows.push({id:rows.length,type,obstacle:OBSTACLES[type]??null,previewStart:start,previewTime:start,activeStart,activeTime:activeStart,activeEnd,activeWindow:activeEnd-activeStart,impactTime,recoveryEnd:start+12000,resolved:false,result:null,successTime:null,firstMotionTime:null,impactResolved:false,attempts:[]});};
- add('RUN',0,11800);
- ['JUMP','CROUCH','DODGE_LEFT'].forEach((a,i)=>add(a,12000+i*12000));
- ['DODGE_RIGHT','JUMP','CROUCH'].forEach((a,i)=>add(a,48000+i*12000));
- ['DODGE_LEFT','DODGE_RIGHT'].forEach((a,i)=>add(a,84000+i*12000));
- add('RUN',108000,119800);return rows;
+ const timing=({EASY:{preview:1500,window:3000},NORMAL:{preview:1300,window:2800},HARD:{preview:1100,window:2600}})[difficulty]??{preview:1500,window:3000};
+ const order=['RUN','JUMP','DODGE_LEFT','CROUCH','DODGE_RIGHT','RUN','DODGE_LEFT','JUMP','DODGE_RIGHT','CROUCH','JUMP','DODGE_LEFT','RUN','CROUCH','DODGE_RIGHT','JUMP','DODGE_LEFT','CROUCH','DODGE_RIGHT','RUN'];
+ return order.map((original,id)=>{const type=original==='JUMP'&&!jumpEnabled?'CROUCH':original,start=id*6000,activeStart=start+(type==='RUN'?3000:timing.preview),activeEnd=type==='RUN'?start+5800:activeStart+timing.window;
+ return {id,type,obstacle:OBSTACLES[type]??null,previewStart:start,previewTime:start,activeStart,activeTime:activeStart,activeEnd,activeWindow:activeEnd-activeStart,impactTime:activeEnd+200,recoveryEnd:start+6000,resolved:false,result:null,successTime:null,firstMotionTime:null,impactResolved:false,attempts:[]};});
 }
+export function obstacleProgress(e,time){const end=e.visualImpactTime??e.impactTime;if(time<=e.activeStart)return .82*Math.max(0,(time-e.previewStart)/(e.activeStart-e.previewStart));return Math.min(1.2,.82+.18*Math.max(0,(time-e.activeStart)/(end-e.activeStart)));}
 /** One game clock owns prompts, scoring windows, obstacle positions and impact.
  * Pose observations are stamped with this clock; render timers never score. */
 export class ForestStage {
- constructor(options={}){this.events=buildForestTimeline(options);this.duration=this.events.at(-1).impactTime;this.segments=SEGMENTS.map((row,i)=>({...row,start:i===0?0:this.events[[0,1,4,7][i]].previewStart,end:i===3?this.duration:this.events[[1,4,7][i]].previewStart}));this.time=0;this.score=0;this.energy=20;this.combo=0;this.bestCombo=0;this.stars=0;this.distance=0;this.runTime=0;this.runHeld=0;this.runGap=0;this.idleTime=0;this.centerHeld=0;this.centerReady=true;this.paused=false;this.finished=false;this.speed=.6;this.motion={state:'CENTER',runState:'IDLE',runIntensity:0,events:[]};this.observedEventId=null;this.lastRunSampleTime=null;this.notices=[];this.lastFeedback=null;this.log=[];this.performance={pose:[],render:[]};}
+ constructor(options={}){this.events=buildForestTimeline(options);this.duration=this.events.at(-1).impactTime;this.segments=SEGMENTS.map((row,i)=>({...row,start:i===0?0:this.events[[0,2,7,14][i]].previewStart,end:i===3?this.duration:this.events[[2,7,14][i]].previewStart}));this.time=0;this.score=0;this.energy=20;this.combo=0;this.bestCombo=0;this.stars=0;this.distance=0;this.runTime=0;this.runHeld=0;this.runGap=0;this.idleTime=0;this.centerHeld=0;this.centerReady=true;this.paused=false;this.finished=false;this.speed=.6;this.motion={state:'CENTER',runState:'IDLE',runIntensity:0,events:[]};this.observedEventId=null;this.lastRunSampleTime=null;this.notices=[];this.lastFeedback=null;this.log=[];this.performance={pose:[],render:[]};}
  currentEvent(){return this.events.find(e=>this.time>=e.previewStart&&this.time<e.recoveryEnd)??null;}
  setJumpEnabled(enabled){if(!enabled)for(const e of this.events)if(!e.resolved&&e.type==='JUMP'){e.type='CROUCH';e.obstacle='BRANCH';}}
  pause(value=true){this.paused=value;if(value){this.lastRunSampleTime=null;this.runHeld=0;this.runGap=0;this.motion={state:'LOST_TRACKING',runState:'IDLE',runIntensity:0,events:[]};}}
- resolve(e,result){if(e.resolved)return;e.resolved=true;e.result=result;e.successTime=result==='SUCCESS'?this.time:null;
+ resolve(e,result){if(e.resolved)return;e.resolved=true;e.result=result;e.successTime=result==='SUCCESS'?this.time:null;if(result==='SUCCESS'&&e.obstacle)e.visualImpactTime=this.time+300;
   if(result==='SUCCESS'){this.combo++;this.bestCombo=Math.max(this.bestCombo,this.combo);this.score+=100+Math.min(30,(this.combo-1)*5);this.energy=clamp(this.energy+8+Math.min(3,this.combo*.3),0,100);this.stars+=e.type==='RUN'?1:3;}
   else {this.combo=0;this.energy=clamp(this.energy-3,0,100);}
   this.lastFeedback={time:this.time,result,type:e.type,id:e.id};this.notices.push({...this.lastFeedback});
@@ -38,7 +32,7 @@ export class ForestStage {
   const collected=Math.floor(this.distance/4)-Math.floor((this.distance-this.speed*seconds)/4);if(collected>0){this.stars+=collected;this.score+=collected*10;this.notices.push({result:'STAR',time:this.time});}
   if(running){this.runTime+=seconds;this.score+=seconds*2;this.energy=clamp(this.energy+seconds*2,0,100);this.idleTime=0;}
   else {this.idleTime+=seconds;if(runRequested&&this.idleTime>3)this.energy=clamp(this.energy-seconds*.5,0,100);}
-  for(const e of this.events){if(!e.resolved&&this.time>=e.activeEnd)this.resolve(e,'MISS');if(!e.impactResolved&&this.time>=e.impactTime){e.impactResolved=true;if(e.obstacle)this.notices.push({result:e.result==='SUCCESS'?'CLEAR':'HIT',type:e.type,id:e.id,time:e.impactTime});}}
+  for(const e of this.events){if(!e.resolved&&this.time>=e.activeEnd)this.resolve(e,'MISS');if(!e.impactResolved&&this.time>=(e.visualImpactTime??e.impactTime)){e.impactResolved=true;if(e.obstacle)this.notices.push({result:e.result==='SUCCESS'?'CLEAR':'HIT',type:e.type,id:e.id,time:e.visualImpactTime??e.impactTime});}}
   if(this.time>=this.duration)this.finished=true;
  }
  observe(motion,deltaMs=0){if(this.paused||this.finished)return false;this.motion=motion;
@@ -66,7 +60,7 @@ export class ForestStage {
   if(this.finished)state='FINISHED';
   const next=this.events.filter(row=>row.previewStart>this.time).slice(0,2).map(row=>row.type);
   const impacted=this.events.find(row=>row.obstacle&&row.result==='MISS'&&this.time>=row.impactTime&&this.time<row.impactTime+500);
-  const animation=impacted?'HIT':e?.result==='SUCCESS'&&e.type!=='RUN'&&this.time>=e.impactTime-450&&this.time<e.impactTime+450?e.type:e?.type==='RUN'?'RUN':'IDLE';
+  const animation=impacted?'HIT':e?.result==='SUCCESS'&&e.type!=='RUN'&&this.time>=e.successTime&&this.time<e.successTime+750?e.type:e?.type==='RUN'?'RUN':'IDLE';
   return {promptState:state,currentPrompt:prompt,nextPrompt:next,promptStartTime:e?.previewStart??this.time,activeWindow:e?[e.activeStart,e.activeEnd]:null,motionDetected:this.motion.state,successTimestamp:e?.successTime??null,runProgress:Math.min(1,this.runHeld/1000),showRunProgress:e?.type==='RUN'&&!e.resolved,slotAction:e?.type??null,combo:this.combo,time:this.time,score:Math.floor(this.score),energy:this.energy,stars:this.stars,speed:this.speed,distance:this.distance,segment,finalRun:this.time>=this.events.at(-1).previewStart,currentAction:e?.type??'RUN',eventState:e?.result??(e?(this.time<e.activeStart?'PREVIEW':'ACTIVE'):'CRUISING'),event:e,nextAction:next[0]??null,waitingForCenter:waiting,characterState:animation,paused:this.paused,finished:this.finished,lastFeedback:this.lastFeedback};
  }
  drainNotices(){return this.notices.splice(0);}

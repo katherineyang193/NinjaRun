@@ -1,3 +1,4 @@
+import {obstacleProgress} from '../game/ForestStage.js?v=sync8';
 /** Lightweight original canvas scenery; throttled independently of Pose. */
 export class ForestView {
  constructor(root){this.root=root;root.innerHTML='<canvas aria-label="原創森林：天空、樹木、道路與障礙"></canvas><div class="forest-character" aria-label="小忍者"><img alt="原創小忍者"></div><div class="forest-hud"><strong class="forest-score">0</strong><label>活力值 <progress max="100" value="20" aria-label="活力值"></progress></label><strong class="forest-combo"></strong></div><div class="forest-segment"></div>';
@@ -15,7 +16,7 @@ export class ForestView {
   c.fillStyle='#81c96b';c.fillRect(0,h*.76,w,h*.24);c.fillStyle='#e1c89b';c.fillRect(0,h*.84,w,h*.16);
   c.strokeStyle='#f9ebc9';c.lineWidth=3;for(let i=0;i<12;i++){const x=(i*w/10-s.distance*55)%(w+150);c.beginPath();c.moveTo(x,h*.93);c.lineTo(x+60,h*.93);c.stroke();}
   c.font='bold 26px sans-serif';for(let i=0;i<5;i++){const x=((i*w/4-s.distance*65)%(w+160)+w+160)%(w+160)-50;c.fillStyle='#ffdc52';c.strokeStyle='#8c622c';c.lineWidth=2;c.strokeText('★',x,h*.8);c.fillText('★',x,h*.8);}
-  const e=s.event;if(e?.obstacle&&s.time<e.impactTime+500){const p=Math.max(0,Math.min(1.16,(s.time-e.previewStart)/(e.impactTime-e.previewStart)));const lane=e.obstacle==='RIGHT_BLOCK'?.055:e.obstacle==='LEFT_BLOCK'?-.055:0;const x=w*.93-(w*(.7-lane))*p;this.obstacle(c,e,x,h*.84,s.time);}
+  const e=s.event;if(e?.obstacle&&s.time<(e.visualImpactTime??e.impactTime)+500){const p=obstacleProgress(e,s.time);const lane=e.obstacle==='RIGHT_BLOCK'?.055:e.obstacle==='LEFT_BLOCK'?-.055:0;const actorX=this.actor.offsetLeft+this.actor.offsetWidth/2;const x=w*.93-(w*.93-actorX)*p+w*lane*p;this.obstacle(c,e,x,h*.84,s.time);}
   const feedback=s.lastFeedback,age=feedback?s.time-feedback.time:Infinity;if(feedback?.result==='SUCCESS'&&age<650){c.fillStyle='#ffe163';for(let i=0;i<6;i++){const a=i*Math.PI/3,r=30+age*.12;c.fillText('✦',w*.23+Math.cos(a)*r,h*.74+Math.sin(a)*r);}}
   this.frames++;this.started??=now;if(now>this.started)this.fps=(this.frames-1)*1000/(now-this.started);this.lastCost=performance.now()-start;
  }

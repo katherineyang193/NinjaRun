@@ -1,4 +1,4 @@
-import {obstacleProgress} from '../game/ForestStage.js?v=sync9';
+import {obstacleProgress} from '../game/ForestStage.js?v=sync9b';
 /** Lightweight original canvas scenery; throttled independently of Pose. */
 export class ForestView {
  constructor(root){this.root=root;root.innerHTML='<canvas aria-label="原創森林：天空、樹木、道路與障礙"></canvas><div class="forest-character" aria-label="小忍者"><img alt="原創小忍者"></div><div class="forest-hud"><strong class="forest-score">0</strong><label>活力值 <progress max="100" value="20" aria-label="活力值"></progress></label><strong class="forest-combo"></strong></div><div class="forest-segment"></div>';

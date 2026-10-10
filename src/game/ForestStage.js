@@ -8,7 +8,11 @@ export function buildForestTimeline({jumpEnabled=true,difficulty='EASY'}={}){
  return order.map((original,id)=>{const type=original==='JUMP'&&!jumpEnabled?'CROUCH':original,start=id*6000,activeStart=start+(type==='RUN'?3000:timing.preview),activeEnd=type==='RUN'?start+5800:activeStart+timing.window;
  return {id,type,obstacle:OBSTACLES[type]??null,previewStart:start,previewTime:start,activeStart,activeTime:activeStart,activeEnd,activeWindow:activeEnd-activeStart,impactTime:activeEnd+200,recoveryEnd:start+6000,resolved:false,result:null,successTime:null,firstMotionTime:null,impactResolved:false,attempts:[]};});
 }
-export function obstacleProgress(e,time){const end=e.visualImpactTime??e.impactTime;if(time<=e.activeStart)return .82*Math.max(0,(time-e.previewStart)/(e.activeStart-e.previewStart));return Math.min(1.2,.82+.18*Math.max(0,(time-e.activeStart)/(end-e.activeStart)));}
+export function obstacleProgress(e,time){
+ const duration=e.impactTime-e.previewStart;
+ if(e.successTime!=null&&e.visualImpactTime!=null&&time>=e.successTime){const start=(e.successTime-e.previewStart)/duration;return start+(1-start)*(time-e.successTime)/(e.visualImpactTime-e.successTime);}
+ return Math.max(0,(time-e.previewStart)/duration);
+}
 /** One game clock owns prompts, scoring windows, obstacle positions and impact.
  * Pose observations are stamped with this clock; render timers never score. */
 export class ForestStage {
@@ -16,7 +20,7 @@ export class ForestStage {
  currentEvent(){return this.events.find(e=>this.time>=e.previewStart&&this.time<e.recoveryEnd)??null;}
  setJumpEnabled(enabled){if(!enabled)for(const e of this.events)if(!e.resolved&&e.type==='JUMP'){e.type='CROUCH';e.obstacle='BRANCH';}}
  pause(value=true){this.paused=value;if(value){this.lastRunSampleTime=null;this.runHeld=0;this.runGap=0;this.motion={state:'LOST_TRACKING',runState:'IDLE',runIntensity:0,events:[]};}}
- resolve(e,result){if(e.resolved)return;e.resolved=true;e.result=result;e.successTime=result==='SUCCESS'?this.time:null;if(result==='SUCCESS'&&e.obstacle)e.visualImpactTime=this.time+300;
+ resolve(e,result){if(e.resolved)return;e.resolved=true;e.result=result;e.successTime=result==='SUCCESS'?this.time:null;if(result==='SUCCESS'&&e.obstacle)e.visualImpactTime=this.time+600;
   if(result==='SUCCESS'){this.combo++;this.bestCombo=Math.max(this.bestCombo,this.combo);this.score+=100+Math.min(30,(this.combo-1)*5);this.energy=clamp(this.energy+8+Math.min(3,this.combo*.3),0,100);this.stars+=e.type==='RUN'?1:3;}
   else {this.combo=0;this.energy=clamp(this.energy-3,0,100);}
   this.lastFeedback={time:this.time,result,type:e.type,id:e.id};this.notices.push({...this.lastFeedback});
@@ -60,7 +64,7 @@ export class ForestStage {
   if(this.finished)state='FINISHED';
   const next=this.events.filter(row=>row.previewStart>this.time).slice(0,2).map(row=>row.type);
   const impacted=this.events.find(row=>row.obstacle&&row.result==='MISS'&&this.time>=row.impactTime&&this.time<row.impactTime+500);
-  const animation=impacted?'HIT':e?.result==='SUCCESS'&&e.type!=='RUN'&&this.time>=e.successTime&&this.time<e.successTime+750?e.type:e?.type==='RUN'?'RUN':'IDLE';
+  const animation=impacted?'HIT':e?.result==='SUCCESS'&&e.type!=='RUN'&&this.time>=e.successTime&&this.time<e.successTime+900?e.type:e?.type==='RUN'?'RUN':'IDLE';
   return {promptState:state,currentPrompt:prompt,nextPrompt:next,promptStartTime:e?.previewStart??this.time,activeWindow:e?[e.activeStart,e.activeEnd]:null,motionDetected:this.motion.state,successTimestamp:e?.successTime??null,runProgress:Math.min(1,this.runHeld/1000),showRunProgress:e?.type==='RUN'&&!e.resolved,slotAction:e?.type??null,combo:this.combo,time:this.time,score:Math.floor(this.score),energy:this.energy,stars:this.stars,speed:this.speed,distance:this.distance,segment,finalRun:this.time>=this.events.at(-1).previewStart,currentAction:e?.type??'RUN',eventState:e?.result??(e?(this.time<e.activeStart?'PREVIEW':'ACTIVE'):'CRUISING'),event:e,nextAction:next[0]??null,waitingForCenter:waiting,characterState:animation,paused:this.paused,finished:this.finished,lastFeedback:this.lastFeedback};
  }
  drainNotices(){return this.notices.splice(0);}

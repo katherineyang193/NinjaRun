@@ -44,3 +44,10 @@ RUN-6：固定120秒，10個主要事件中Dodge4／Jump+Crouch4／RUN2（40%／
 RUN-7：修正比例定義，10個12秒區段合計Dodge48秒／Jump+Crouch48秒／RUN24秒（包含預告、有效窗與站穩）。非RUN区段不提示／要求跑步，角色自動前進。Easy有效窗6秒、Normal5秒、Hard4秒；站穩等待下一招。RUN700ms短暫CENTER漏判保留已得進度，不計漏判時間；站位穩定1200ms後修正左右膝差偏移，仍須新交替踏步。已知真人RUN1/2、Crouch1/2、Right0/2，這不是新版成功率。
 
 SYNC-8：真人五種全通過後不再改動辨識。每招從12秒縮短至6秒，20個事件總長120秒，時間配置仍左右48／跳蹲48／RUN24。只有RUN準備3秒，其餘Easy1.5／Normal1.3／Hard1.1秒。成功即播放動作750ms，同一事件visualImpactTime為成功後300ms，障礙通過與CLEAR採同一時間；未成功仍依原impactTime。場景對齊忍者實際位置，Debug紀錄visualImpactTime。新增無鏡頭成功跳躍同步預覽。森林時序測試依新版安排重寫，未修改MotionDetector。
+
+## SYNC-9
+- Fix the previous 82% preview / 18% active movement split: obstacles now approach linearly and remain distant when ACTIVE begins.
+- Successful obstacles continue from their exact current position and cross in 600ms; no position jump. Character motion follows a 900ms smooth arc driven by the same game clock.
+- Desktop prompt occupies 42%–68.5% horizontal space. Camera occupies the right 30%, from 3% to 90% of stage height.
+- Preserve 120s, 40/40/20 time allocation, detector thresholds, and RUN-only 3s preparation.
+- Automated synthetic tests do not establish human RUN success rate or Webcam Pose FPS.

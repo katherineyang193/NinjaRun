@@ -1,9 +1,9 @@
-import {ForestStage} from '../game/ForestStage.js?v=sync8';
-import {ForestView} from '../ui/ForestView.js?v=sync8';
-import {PromptView} from '../ui/PromptView.js?v=sync8';
-import {MotionDetector} from '../motion/MotionDetector.js?v=sync8';
+import {ForestStage} from '../game/ForestStage.js?v=sync9';
+import {ForestView} from '../ui/ForestView.js?v=sync9';
+import {PromptView} from '../ui/PromptView.js?v=sync9';
+import {MotionDetector} from '../motion/MotionDetector.js?v=sync9';
 import {neutral} from './self-test.js?v=body3';
-import {forestReportText} from '../ui/StageReport.js?v=sync8';
+import {forestReportText} from '../ui/StageReport.js?v=sync9';
 const $=id=>document.getElementById(id),view=new ForestView($('forestScene')),prompt=new PromptView($('promptStage'));
 let stage=new ForestStage(),detector=new MotionDetector(),last=null,paused=false,miss=false,poseTime=0;
 function input(){const f=neutral(),e=stage.currentEvent(),beat=Math.floor(stage.time/250)%2;if(!miss){if(e?.type==='RUN'){f.leftLift=beat?.03:0;f.rightLift=beat?0:.03;}

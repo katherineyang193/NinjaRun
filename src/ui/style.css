@@ -62,3 +62,5 @@ body[data-mode=forest] .prompt-stage{left:35%;width:clamp(300px,38vw,650px)}
 body[data-mode=forest] .forest-hud{right:34%}
 body[data-mode=forest] .start-area{max-width:64%}
 @media(max-width:680px){body[data-mode=forest] .camera-box{width:36%;height:26%;bottom:14%;right:2%}body[data-mode=forest] .camera-caption{top:auto;bottom:41%;max-width:36%;font-size:12px}body[data-mode=forest] .prompt-stage{left:50%;width:90%}body[data-mode=forest] .forest-hud{right:8px}}
+
+.forest-character[data-state=IDLE]{animation:none;transform:none}

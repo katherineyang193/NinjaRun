@@ -14,7 +14,7 @@ export class PromptView {
     this.root.dataset.state=paused?'PAUSED':promptState;this.root.dataset.action=currentPrompt??'';
     this.root.querySelector('.prompt-phase').textContent=paused?'回到框框裡～':snapshot.waitingForCenter?'先回中央':({PREVIEW:'準備',ACTIVE:'現在做！',SUCCESS:'NICE!',MISS:'再試試',RECOVERY:'站穩，慢慢來',FINISHED:'完成！'})[promptState];
     this.root.querySelector('.prompt-symbol').innerHTML=promptState==='SUCCESS'?'<span class="success-check">✓</span><span class="sparkles" aria-hidden="true">✦　✧　✦</span>':promptIcon(currentPrompt);
-    this.root.querySelector('.prompt-label').textContent=paused?'找到身體就繼續':promptState==='RECOVERY'?'等等接著跑':labels[currentPrompt]??'';
+    this.root.querySelector('.prompt-label').textContent=paused?'找到身體就繼續':promptState==='RECOVERY'?'站穩，等下一招':labels[currentPrompt]??'';
     this.root.querySelector('.prompt-next').innerHTML=nextPrompt.map(a=>`<span aria-label="${labels[a]}">${promptIcon(a)}</span>`).join('');
     this.root.querySelector('.prompt-combo').textContent=combo>1?`COMBO ×${combo}`:'';
   }

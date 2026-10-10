@@ -5,17 +5,17 @@ import {MirrorController} from './motion/MirrorController.js';
 import {CalibrationManager} from './motion/CalibrationManager.js';
 import {PlayerCoordinateMapper} from './motion/PlayerCoordinateMapper.js?v=body3';
 import {TrackingManager} from './motion/TrackingManager.js';
-import {MotionDetector} from './motion/MotionDetector.js?v=run6';
+import {MotionDetector} from './motion/MotionDetector.js?v=run7';
 import {MotionProgress} from './motion/MotionProgress.js';
 import {poseFeatures} from './motion/pose-features.js?v=body3';
-import {AudioManager} from './audio/AudioManager.js?v=run6';
+import {AudioManager} from './audio/AudioManager.js?v=run7';
 import {runSelfTest} from './dev/self-test.js?v=body3';
 import {bodyTrackable,drawTrackingOverlay} from './ui/TrackingOverlay.js?v=body3';
 import {PromptSequence} from './game/PromptSequence.js?v=run2';
-import {PromptView} from './ui/PromptView.js?v=run6';
-import {ForestStage} from './game/ForestStage.js?v=run6';
-import {forestDebugText,forestReportText} from './ui/StageReport.js';
-import {ForestView} from './ui/ForestView.js?v=run6';
+import {PromptView} from './ui/PromptView.js?v=run7';
+import {ForestStage} from './game/ForestStage.js?v=run7';
+import {forestDebugText,forestReportText} from './ui/StageReport.js?v=run7';
+import {ForestView} from './ui/ForestView.js?v=run7';
 const $=id=>document.getElementById(id);
 const settings=new SettingsManager(),mirror=new MirrorController(settings),calibration=new CalibrationManager();
 const tracking=new TrackingManager(),detector=new MotionDetector(settings.value),audio=new AudioManager(settings);
@@ -106,6 +106,7 @@ const promptReport=playMode==='guided'?sequence.report():null;const report={...p
   $('summary').hidden=false;$('summary').querySelector('h2').textContent=lastForestReport?'森林冒險完成！ ✦':'動作練習完成！ ✦';$('summaryText').textContent=`動動時間 ${Math.round(report.elapsed)} 秒　·　跑動 ${Math.round(report.runTime)} 秒　·　跳躍 ${report.JUMP} 次　·　蹲下 ${report.CROUCH} 次　·　閃避 ${report.DODGE_LEFT+report.DODGE_RIGHT} 次。超級有活力！`;
   if(promptReport)$('summaryText').textContent+=' 提示挑戰：'+promptReport.map(r=>`${actionLabels[r.action]} ${r.successes}/${r.attempts}（${r.rate===null?'未出題':r.rate+'%'}）`).join(' · ')+`；最高 Combo ${sequence.bestCombo}。`;
   if(lastForestReport)$('summaryText').textContent=`森林冒險完成！ ${Math.round(lastForestReport.durationSeconds)} 秒 · Score ${lastForestReport.score} · 星星 ${lastForestReport.stars} · 活力值 ${lastForestReport.energy} · 跑動 ${lastForestReport.runSeconds.toFixed(1)} 秒 · 最高 Combo ${lastForestReport.bestCombo}。`+' 動作成功率：'+lastForestReport.actions.map(r=>`${actionLabels[r.action]} ${r.successes}/${r.attempts}（${r.rate===null?'未出題':r.rate+'%'}）`).join(' · ');
+  if(lastForestReport)$('summaryText').textContent+=' · 提示區段：左右閃 48秒／跳蹲 48秒／跑步 24秒（40%／40%／20%）。';
   audio.play('finish');message(lastForestReport?'森林冒險完成！':'動作練習完成！','準備好了，就可以再練一次。');$('phaseLabel').textContent='NICE MOVES, NINJA!';
   if(completions>=3){phase='REST';message('休息一下，喝口水！','休息好了，按下面的按鈕再繼續。');$('startBtn').hidden=true;$('guidedBtn').hidden=true;$('freeBtn').hidden=true;$('continueBtn').hidden=false;}
 }
@@ -144,7 +145,7 @@ function frame(now){
       `Pose confidence: ${v(features?.confidence)}   Hip X: ${v(features?.hipX)}   Hip Y: ${v(features?.hipY)}`,
       `baseline X: ${v(baseline?.baselineHipX)}   baseline Y: ${v(baseline?.baselineHipY)}   average frames: ${baseline?.frames??0}`,
       `motionState: ${motion.state}   runState: ${motion.runState}   runIntensity: ${v(motion.runIntensity)}`,
-      `Knees visible: ${features?.lowerBodyVisible??'—'}   partial-body tracking: ${phase==='PLAYING'}   Run steps: ${motion.stepCount??0}   knee difference: ${v(motion.features?(motion.features.leftLift-motion.features.rightLift):null)}   run threshold: ${v(motion.runThreshold)}`,
+      `Knees visible: ${features?.lowerBodyVisible??'—'}   partial-body tracking: ${phase==='PLAYING'}   Run center: ${Number.isFinite(motion.runCenter)?motion.runCenter.toFixed(4):"—"} · Run steps: ${motion.stepCount??0}   knee difference: ${v(motion.features?(motion.features.leftLift-motion.features.rightLift):null)}   run threshold: ${v(motion.runThreshold)}`,
       `mirrorMode: ${settings.value.mirrorMode}   displayMirrored: ${mirror.displayMirrored}   mirrorDirection: ${mirror.mirrorDirection??'uncalibrated'}`,
       `Player right raw sign: ${mapper?.calibration.playerRightSign??'—'}   Player X: ${v(motion.features?.playerX)}`,
       `trackingState: ${trackingPaused?'LOST_TRACKING':'TRACKING'}   phase: ${phase}`,

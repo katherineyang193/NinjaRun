@@ -7,7 +7,7 @@ export class MotionDetector {
     this.gates={};this.cooldown={jump:-Infinity,crouch:-Infinity,dodge:-Infinity};
     this.jumpArmed=true;this.crouchArmed=true;this.dodgeArmed=true;
     this.stepSide=null;this.steps=[];this.runIntensity=0;this.runThreshold=.010;
-    this.lastLegTime=null;this.lastSpecialTime=-Infinity;
+    this.runCenter=0;this.biasSample=null;this.biasSince=null;this.lastLegTime=null;this.lastSpecialTime=-Infinity;
   }
   confirm(key, condition, now, ms=75, frames=3) {
     if(!condition){delete this.gates[key];return false;}
@@ -61,7 +61,10 @@ export class MotionDetector {
       if(this.lastLegTime===null||now-this.lastLegTime>250){this.steps=[];this.stepSide=null;}
     }else {
       this.lastLegTime=now;
-      const diff=f.leftLift-f.rightLift;
+      const rawDifference=f.leftLift-f.rightLift;
+      // Remove persistent left/right baseline bias after changing stance.
+      if(this.state==='CENTER'&&Math.abs(rawDifference-(this.biasSample??rawDifference))<.002){this.biasSince??=now;if(now-this.biasSince>=1200){this.runCenter=rawDifference;this.steps=[];this.stepSide=null;}}else {this.biasSince=now;}this.biasSample=rawDifference;
+      const diff=rawDifference-this.runCenter;
       // Small steps at full-body camera distance are enough. A slightly moving
       // calibration must not raise the threshold without limit.
       this.runThreshold=Math.max(.010,Math.min(.024,(input.runNoise??0)*2.2));
@@ -70,7 +73,7 @@ export class MotionDetector {
       // Hysteresis keeps a candidate through small dips, but cannot create a new step.
       if(!side&&this.gates.step_left&&diff>exit)side='left';
       if(!side&&this.gates.step_right&&diff<-exit)side='right';
-      const rawDiff=input.leftLift-input.rightLift;
+      const rawDiff=input.leftLift-input.rightLift-this.runCenter;
       if(side&&(Math.sign(rawDiff)!==(side==='left'?1:-1)||Math.abs(rawDiff)<exit))side=null;
       if(this.confirm('step_'+side,!!side,now,35,2)&&side!==this.stepSide){
         if(this.steps.length&&now-this.steps.at(-1).time<150){/* Reject landmark flicker. */}
@@ -89,6 +92,6 @@ export class MotionDetector {
     const next=jumping?'JUMPING':crouching?'CROUCHING':dodging?dodgeSide:running?'RUNNING':'CENTER';
     if(next==='RUNNING'&&this.state!=='RUNNING')events.push('RUN');
     this.state=next;
-    return {state:next,runState:running?'RUNNING':'IDLE',runIntensity:this.runIntensity,stepCount:this.steps.length,runThreshold:this.runThreshold,runResume:now-this.lastSpecialTime<4000,events,features:f};
+    return {state:next,runState:running?'RUNNING':'IDLE',runIntensity:this.runIntensity,stepCount:this.steps.length,runThreshold:this.runThreshold,runCenter:this.runCenter,runResume:now-this.lastSpecialTime<4000,events,features:f};
   }
 }

@@ -10,9 +10,9 @@ export function buildForestTimeline({jumpEnabled=true,difficulty='EASY'}={}){
   const impactTime=activeEnd+200,recovery=type==='JUMP'?2000:type==='CROUCH'?2000:1800;
   rows.push({id:rows.length,type,obstacle:OBSTACLES[type]??null,previewStart:start,previewTime:start,activeStart,activeTime:activeStart,activeEnd,activeWindow:activeEnd-activeStart,impactTime,recoveryEnd:type==='RUN'?impactTime:impactTime+recovery,resolved:false,result:null,successTime:null,firstMotionTime:null,impactResolved:false,attempts:[]});};
  add('RUN',0,11800);
- ['JUMP','CROUCH','DODGE_LEFT','DODGE_RIGHT'].forEach((a,i)=>add(a,12000+i*8000));
- ['JUMP','DODGE_LEFT','CROUCH','DODGE_RIGHT','JUMP'].forEach((a,i)=>add(a,44000+i*8000));
- ['CROUCH','DODGE_RIGHT','DODGE_LEFT'].forEach((a,i)=>add(a,84000+i*8000));
+ ['JUMP','CROUCH','DODGE_LEFT'].forEach((a,i)=>add(a,12000+i*12000));
+ ['DODGE_RIGHT','JUMP','CROUCH'].forEach((a,i)=>add(a,48000+i*12000));
+ ['DODGE_LEFT','DODGE_RIGHT'].forEach((a,i)=>add(a,84000+i*12000));
  add('RUN',108000,119800);return rows;
 }
 /** One game clock owns prompts, scoring windows, obstacle positions and impact.

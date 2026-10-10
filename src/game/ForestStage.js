@@ -18,10 +18,10 @@ export function buildForestTimeline({jumpEnabled=true,difficulty='EASY'}={}){
 /** One game clock owns prompts, scoring windows, obstacle positions and impact.
  * Pose observations are stamped with this clock; render timers never score. */
 export class ForestStage {
- constructor(options={}){this.events=buildForestTimeline(options);this.duration=104000;this.time=0;this.score=0;this.energy=20;this.combo=0;this.bestCombo=0;this.stars=0;this.distance=0;this.runTime=0;this.runHeld=0;this.runGap=0;this.idleTime=0;this.centerHeld=0;this.centerReady=true;this.paused=false;this.finished=false;this.speed=.6;this.motion={state:'CENTER',runState:'IDLE',runIntensity:0,events:[]};this.observedEventId=null;this.notices=[];this.lastFeedback=null;this.log=[];this.performance={pose:[],render:[]};}
+ constructor(options={}){this.events=buildForestTimeline(options);this.duration=104000;this.time=0;this.score=0;this.energy=20;this.combo=0;this.bestCombo=0;this.stars=0;this.distance=0;this.runTime=0;this.runHeld=0;this.runGap=0;this.idleTime=0;this.centerHeld=0;this.centerReady=true;this.paused=false;this.finished=false;this.speed=.6;this.motion={state:'CENTER',runState:'IDLE',runIntensity:0,events:[]};this.observedEventId=null;this.lastRunSampleTime=null;this.notices=[];this.lastFeedback=null;this.log=[];this.performance={pose:[],render:[]};}
  currentEvent(){return this.events.find(e=>this.time>=e.previewStart&&this.time<e.recoveryEnd)??null;}
  setJumpEnabled(enabled){if(!enabled)for(const e of this.events)if(!e.resolved&&e.type==='JUMP'){e.type='CROUCH';e.obstacle='BRANCH';}}
- pause(value=true){this.paused=value;if(value){this.runHeld=0;this.runGap=0;this.motion={state:'LOST_TRACKING',runState:'IDLE',runIntensity:0,events:[]};}}
+ pause(value=true){this.paused=value;if(value){this.lastRunSampleTime=null;this.runHeld=0;this.runGap=0;this.motion={state:'LOST_TRACKING',runState:'IDLE',runIntensity:0,events:[]};}}
  resolve(e,result){if(e.resolved)return;e.resolved=true;e.result=result;e.successTime=result==='SUCCESS'?this.time:null;
   if(result==='SUCCESS'){this.combo++;this.bestCombo=Math.max(this.bestCombo,this.combo);this.score+=100+Math.min(30,(this.combo-1)*5);this.energy=clamp(this.energy+8+Math.min(3,this.combo*.3),0,100);this.stars+=e.type==='RUN'?1:3;}
   else {this.combo=0;this.energy=clamp(this.energy-3,0,100);}
@@ -45,11 +45,12 @@ export class ForestStage {
   const f=motion.features;const centered=f?Math.abs(f.playerX)<.055&&Math.abs(f.playerShoulderX)<.075:['CENTER','RUNNING'].includes(motion.state);
   if(centered){this.centerHeld+=Math.min(120,Math.max(0,deltaMs));if(this.centerHeld>=160)this.centerReady=true;}else {this.centerHeld=0;this.centerReady=false;}
   const e=this.currentEvent();if(!e){this.runHeld=0;this.runGap=0;return false;}
-  if(this.observedEventId!==e.id){this.runHeld=0;this.runGap=0;this.observedEventId=e.id;}
+  if(this.observedEventId!==e.id){this.runHeld=0;this.runGap=0;this.observedEventId=e.id;this.lastRunSampleTime=null;}
+  const previousRunSample=this.lastRunSampleTime;if(e.type==='RUN')this.lastRunSampleTime=this.time;
   const active=this.time>=e.activeStart&&this.time<e.activeEnd;
   for(const action of motion.events??[]){if(e.firstMotionTime===null)e.firstMotionTime=this.time;const attempt={time:this.time,action,accepted:active&&!e.resolved&&action===e.type,reason:e.resolved?'already resolved':!active?'outside active window':action!==e.type?'different action':'matched'};e.attempts.push(attempt);this.log.push({eventId:e.id,...attempt});}
   if(!active||e.resolved)return false;
-  if(e.type==='RUN'){const delta=Math.min(120,Math.max(0,deltaMs));if(motion.runState==='RUNNING'){this.runHeld+=delta;this.runGap=0;}else {this.runGap+=delta;if(motion.state!=='CENTER'||this.runGap>250)this.runHeld=0;}
+  if(e.type==='RUN'){const delta=Math.min(120,Math.max(0,deltaMs),Math.max(0,this.time-Math.max(e.activeStart,previousRunSample??this.time)));if(motion.runState==='RUNNING'){this.runHeld+=delta;this.runGap=0;}else {this.runGap+=delta;if(motion.state!=='CENTER'||this.runGap>250)this.runHeld=0;}
    if(this.runHeld<1000)return false;
   }else if(!(motion.events??[]).includes(e.type))return false;
   this.resolve(e,'SUCCESS');return true;

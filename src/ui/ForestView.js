@@ -17,7 +17,7 @@ export class ForestView {
   c.font='bold 26px sans-serif';for(let i=0;i<5;i++){const x=((i*w/4-s.distance*65)%(w+160)+w+160)%(w+160)-50;c.fillStyle='#ffdc52';c.strokeStyle='#8c622c';c.lineWidth=2;c.strokeText('★',x,h*.8);c.fillText('★',x,h*.8);}
   const e=s.event;if(e?.obstacle&&s.time<e.impactTime+500){const p=Math.max(0,Math.min(1.16,(s.time-e.previewStart)/(e.impactTime-e.previewStart)));const lane=e.obstacle==='RIGHT_BLOCK'?.055:e.obstacle==='LEFT_BLOCK'?-.055:0;const x=w*.93-(w*(.7-lane))*p;this.obstacle(c,e,x,h*.84,s.time);}
   const feedback=s.lastFeedback,age=feedback?s.time-feedback.time:Infinity;if(feedback?.result==='SUCCESS'&&age<650){c.fillStyle='#ffe163';for(let i=0;i<6;i++){const a=i*Math.PI/3,r=30+age*.12;c.fillText('✦',w*.23+Math.cos(a)*r,h*.74+Math.sin(a)*r);}}
-  this.frames++;this.started??=now;if(now>this.started)this.fps=this.frames*1000/(now-this.started);this.lastCost=performance.now()-start;
+  this.frames++;this.started??=now;if(now>this.started)this.fps=(this.frames-1)*1000/(now-this.started);this.lastCost=performance.now()-start;
  }
  tree(c,x,y,scale,color){c.fillStyle='#967650';c.fillRect(x-9*scale,y-145*scale,18*scale,150*scale);c.fillStyle=color;for(const [dx,dy,r] of [[0,-190,70],[-45,-145,58],[45,-150,60]]){c.beginPath();c.arc(x+dx*scale,y+dy*scale,r*scale,0,Math.PI*2);c.fill();}}
  obstacle(c,e,x,y,time){const success=e.result==='SUCCESS';c.save();c.globalAlpha=success?.65:1;c.strokeStyle='#714e33';c.lineWidth=4;

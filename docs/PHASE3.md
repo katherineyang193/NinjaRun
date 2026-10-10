@@ -15,17 +15,19 @@ JUMP 恢復 1.4 秒、CROUCH 1.1 秒、DODGE .9 秒。下一個 Dodge 的 ACTIVE
 ## 場景、計分及效能
 原創簡化 Canvas 森林含天空、遠樹、近樹、地面、木箱、低樹枝、左右路障，沿用原創 ninja.svg。角色 RUN / JUMP / CROUCH / DODGE_LEFT / DODGE_RIGHT / HIT 狀態。
 IDLE 速度 .6x，RUN 1.0～1.15x，最後衝刺上限1.2x；不用真的往前走。場景依移動距離滾動，障礙進度則直接依事件的 preview→impact 時間，以保持碰撞同步。
-成功 +100 分，Combo bonus 最多+30；持续 RUN +2分／秒。成功+活力值，RUN缓慢增加；MISS只减3点活力值、Combo归零，不扣分不Game Over。自动前进星星+10分，成功路线星星3颗（RUN区段1颗）。
-MISS 角色失衡500ms，之后继续；成功大图示回馈700ms，不遮住下个事件。主图示／HUD／右下 Camera Preview 与 Debug 分层，Debug 在关卡下方。
-Canvas目标30FPS，Pose FPS低于12时自动降为20FPS；DPR上限1.5，Pose loop与场景loop分离。Debug显示Canvas cost与Scene FPS。无新Camera Engine，无录像／上传，无模型缓存进Git。
+成功 +100 分，Combo bonus 最多+30；持續 RUN +2分／秒。成功+活力值，RUN緩慢增加；MISS只減3點活力值、Combo歸零，不扣分不Game Over。自動前进星星+10分，成功路線星星3顆（RUN区段1顆）。
+MISS 角色失衡500ms，之後繼續；成功大圖示回饋700ms，不遮住下一個事件。主圖示／HUD／右下 Camera Preview 與 Debug 分層，Debug 在關卡下方。
+Canvas目標30FPS，Pose FPS低于12時自動降為20FPS；DPR上限1.5，Pose loop與场景loop分離。Debug顯示Canvas cost與Scene FPS。無新Camera Engine，無錄影／上传，無模型快取进Git。
 
-## 测试与验收边界
-70项自动测试通过，包括整局104秒真实MotionDetector合成输入、全MISS仍完成、提前／错误／超时动作、一次计分、同笔成功碰撞通过、回中央等待、追踪暂停恢复、RUN速度能量星星、禁用Jump与恢复间隔。
-整局合成动作五种成功率均100%（RUN2/2、JUMP4/4、CROUCH4/4、LEFT3/3、RIGHT3/3）。这不是真人结果。
-新增森林时序预览页面，标示CAMERA OFF／合成，支持成功重播、全部MISS、暂停、木箱预告与跳至合成结果，使用同一ForestStage和MotionDetector。
-真人全身站位连续104秒的动作成功率、平均反应时间、Pose FPS、游戏自然度尚待用户试玩。此前64秒真人测试的RUN67%、其余100%不能作为本关卡成功率。
-每局真人结束后Developer Mode显示总事件、SUCCESS/MISS、各动作成功率、平均反应时间、最早动作／最晚成功、Pose/Render FPS及每次动作忽略原因。数据只在本次页面内存，不保存影像。
+## 測試與验收边界
+71項自動測試通過，包括整局104秒真實MotionDetector合成输入、全MISS仍完成、提前／錯誤／超時動作、一次計分、同筆成功碰撞通過、回中央等待、追蹤暫停恢复、RUN速度能量星星、禁用Jump與恢复間隔。
+整局合成動作五種成功率均100%（RUN2/2、JUMP4/4、CROUCH4/4、LEFT3/3、RIGHT3/3）。這不是真人結果。
+新增森林時序预览頁面，標示CAMERA OFF／合成，支援成功重播、全部MISS、暫停、木箱预告與跳至合成結果，使用同一ForestStage和MotionDetector。
+真人全身站位连续104秒的動作成功率、平均反應時间、Pose FPS、游戏自然度尚待使用者試玩。此前64秒真人測試的RUN67%、其余100%不能作為本關卡成功率。
+每局真人結束后Developer Mode顯示總事件、SUCCESS/MISS、各動作成功率、平均反應時间、最早動作／最晚成功、Pose/Render FPS及每次動作忽略原因。資料只在本次頁面記憶體，不保存影像。
 
-## 建议的真人复测
-先用Easy玩一局；结束打开开发模式，复制森林试玩纪录。记录是否有「已经做对但MISS」及是哪一招，核对其动作戳记与ACTIVE范围。另比较64秒提示挑战和森林关的平均Pose FPS；若森林明显下降，先降低场景刷新率／DPR。
-完成Phase3实现后停止，等自然度与实际FPS确认，再考虑Phase4追逐和Boss。
+## 建議的真人複測
+先用Easy玩一局；結束開啟开发模式，複製森林試玩紀錄。記錄是否有「已經做對但MISS」及是哪一招，核對其動作戳記與ACTIVE範圍。另比較64秒提示挑戰和森林關的平均Pose FPS；若森林明顯下降，先降低场景更新率／DPR。
+完成Phase3實作后停止，等自然度與實際FPS確認，再考慮Phase4追逐和Boss。
+
+時序修正：衝刺障礙延長間距，消除 150ms 回復重疊；RUN 只累計 ACTIVE 內真正推進的遊戲時間，同一時間重複收到 Pose 不會多算。

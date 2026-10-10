@@ -16,7 +16,7 @@ test('104 second four-part timeline has four original obstacles and no overlappi
 test('one clock accepts ACTIVE success once, ignores early/wrong/late events, and clears the same obstacle at impact',()=>{
  const s=new ForestStage();s.advance(13000);const e=s.currentEvent();assert.equal(e.type,'JUMP');assert.equal(s.observe(hit('JUMP'),40),false);
  s.advance(e.activeStart-s.time);assert.equal(s.observe(hit('CROUCH'),40),false);assert.equal(s.observe(hit('JUMP'),40),true);const score=s.score;
- assert.equal(s.observe(hit('JUMP'),40),false);assert.equal(s.score,score);s.advance(e.impactTime-s.time);assert.equal(e.result,'SUCCESS');assert.equal(e.impactResolved,true);assert.ok(s.drainNotices().some(n=>n.id===e.id&&n.result==='CLEAR'));assert.ok(!s.drainNotices().some(n=>n.id===e.id&&n.result==='HIT'));
+ assert.equal(s.observe(hit('JUMP'),40),false);assert.equal(s.score,score);s.advance(e.impactTime-s.time);assert.equal(e.result,'SUCCESS');assert.equal(e.impactResolved,true);const notices=s.drainNotices();assert.ok(notices.some(n=>n.id===e.id&&n.result==='CLEAR'));assert.ok(!notices.some(n=>n.id===e.id&&n.result==='HIT'));
  assert.ok(e.attempts.some(a=>a.reason==='outside active window'));assert.ok(e.attempts.some(a=>a.reason==='different action'));
 });
 test('miss resets combo with only a small energy penalty and never prevents finishing',()=>{
@@ -32,7 +32,7 @@ test('tracking pause freezes timeline, scenery distance, score, energy and impac
 test('RUN continuously controls bounded speed, points, energy and normal stars, even after its segment succeeds',()=>{
  const s=new ForestStage();for(let i=0;i<240;i++){s.advance(40);s.observe(run(),40);}assert.equal(s.events[0].result,'SUCCESS');assert.ok(s.runTime>8);assert.ok(s.speed>=1&&s.speed<=1.15);assert.ok(s.stars>=3);const runningEnergy=s.energy;
  s.observe(idle(),40);for(let i=0;i<60;i++){s.advance(40);s.observe(idle(),40);}assert.ok(s.speed>=.6&&s.speed<.7);assert.ok(s.energy<=runningEnergy);
- s.advance(97500-s.time);const e=s.currentEvent();s.observe(run(),40);assert.equal(e.result,null);assert.equal(s.runHeld,0);s.advance(e.activeStart-s.time);for(let i=0;i<24;i++)assert.equal(s.observe(run(),40),false);assert.equal(s.observe(run(),40),true);
+ s.advance(97500-s.time);const e=s.currentEvent();s.observe(run(),40);assert.equal(e.result,null);assert.equal(s.runHeld,0);s.advance(e.activeStart-s.time);s.observe(run(),40);for(let i=0;i<24;i++){s.advance(40);assert.equal(s.observe(run(),40),false);}s.advance(40);assert.equal(s.observe(run(),40),true);
 });
 test('dodge waits in PREVIEW for a confirmed return to physical center',()=>{
  const s=new ForestStage();s.advance(26000);const e=s.currentEvent();assert.equal(e.type,'DODGE_LEFT');s.observe({...idle(),features:{...neutral(),playerX:.22,playerShoulderX:.2}},40);
@@ -49,4 +49,10 @@ test('synthetic full level uses real MotionDetector output and all five actions 
 test('turning jump off during a level replaces pending jump obstacles, and sprint speed remains bounded',()=>{
  const s=new ForestStage();s.advance(13000);s.setJumpEnabled(false);assert.equal(s.currentEvent().type,'CROUCH');assert.ok(!s.events.some(e=>!e.resolved&&e.type==='JUMP'));
  s.advance(98000-s.time);s.observe({...run(),runIntensity:1},40);for(let i=0;i<20;i++)s.advance(40);assert.ok(s.speed<=1.2);
+});
+
+test('RUN credit excludes preview time and repeated samples without advancing the game clock',()=>{
+ const s=new ForestStage();s.advance(690);s.observe(run(),40);s.advance(20);s.observe(run(),40);assert.equal(s.runHeld,10);
+ for(let i=0;i<40;i++)s.observe(run(),40);assert.equal(s.runHeld,10);assert.equal(s.events[0].result,null);
+ for(let i=0;i<24;i++){s.advance(40);s.observe(run(),40);}assert.equal(s.events[0].result,null);s.advance(40);assert.equal(s.observe(run(),40),true);assert.ok(s.events[0].successTime-s.events[0].activeStart>=1000);
 });

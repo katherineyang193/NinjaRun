@@ -8,14 +8,14 @@ import {TrackingManager} from './motion/TrackingManager.js';
 import {MotionDetector} from './motion/MotionDetector.js?v=body3';
 import {MotionProgress} from './motion/MotionProgress.js';
 import {poseFeatures} from './motion/pose-features.js?v=body3';
-import {AudioManager} from './audio/AudioManager.js?v=run4';
+import {AudioManager} from './audio/AudioManager.js?v=run5';
 import {runSelfTest} from './dev/self-test.js?v=body3';
 import {bodyTrackable,drawTrackingOverlay} from './ui/TrackingOverlay.js?v=body3';
 import {PromptSequence} from './game/PromptSequence.js?v=run2';
-import {PromptView} from './ui/PromptView.js?v=run4';
-import {ForestStage} from './game/ForestStage.js?v=run4';
+import {PromptView} from './ui/PromptView.js?v=run5';
+import {ForestStage} from './game/ForestStage.js?v=run5';
 import {forestDebugText,forestReportText} from './ui/StageReport.js';
-import {ForestView} from './ui/ForestView.js?v=run4';
+import {ForestView} from './ui/ForestView.js?v=run5';
 const $=id=>document.getElementById(id);
 const settings=new SettingsManager(),mirror=new MirrorController(settings),calibration=new CalibrationManager();
 const tracking=new TrackingManager(),detector=new MotionDetector(settings.value),audio=new AudioManager(settings);
@@ -126,7 +126,7 @@ function frame(now){
   if(phase==='PLAYING'&&!trackingPaused&&!document.hidden&&!$('settingsDialog').open){if(playMode==='forest'){forest.pause(false);forest.advance(dt*1000);elapsed=forest.time/1000;forestFeedback();}else elapsed+=dt;if(motion.runState==='RUNNING')runTime+=dt;if(playMode==='guided'){sequence.advance(dt*1000);const snap=sequence.snapshot();if(snap.promptState==='ACTIVE'&&lastPromptState!=='ACTIVE')audio.play('count');lastPromptState=snap.promptState;promptView.update(snap,false);if(snap.promptState==='FINISHED')finish();}else if(playMode==='forest'){promptView.update(forest.snapshot(),false);const snap=forest.snapshot(),key=`${snap.event?.id}:${snap.promptState}`;if(snap.promptState==='ACTIVE'&&key!==lastPromptState)audio.play('count');lastPromptState=key;if(forest.finished)finish();}else if(elapsed>=settings.value.duration)finish();}
   if(phase==='PLAYING'&&playMode==='guided')promptView.update(sequence.snapshot(),trackingPaused);
   if(phase==='PLAYING'&&playMode==='forest'){forest.pause(trackingPaused||document.hidden||$('settingsDialog').open);const snap=forest.snapshot();promptView.update(snap,trackingPaused||document.hidden||$('settingsDialog').open);forestView.update(snap,now,pose.fps);}
-  if(now-lastUI>100){if(phase==='PLAYING'&&playMode==='forest')forest.notePerformance(pose.fps,renderFps);lastUI=now;document.body.dataset.phase=phase;$('sessionClock').textContent=phase==='PLAYING'?`${Math.floor(elapsed/60)}:${String(Math.floor(elapsed%60)).padStart(2,'0')} / ${playMode==='forest'?'2:00':playMode==='guided'?'1:04':settings.value.duration/60+':00'}`:phase==='LOADING'?'正在準備…':phase==='CALIBRATION'?'左右校正':phase==='COUNTDOWN'?'準備出發':phase==='FINISHED'||phase==='REST'?'練習完成':'準備出發';
+  if(now-lastUI>100){if(phase==='PLAYING'&&playMode==='forest')forest.notePerformance(pose.fps,renderFps);lastUI=now;document.body.dataset.phase=phase;$('sessionClock').textContent=phase==='PLAYING'?`${Math.floor(elapsed/60)}:${String(Math.floor(elapsed%60)).padStart(2,'0')} / ${playMode==='forest'?`${Math.floor(forest.duration/60000)}:${String(Math.round(forest.duration/1000)%60).padStart(2,'0')}`:playMode==='guided'?'1:04':settings.value.duration/60+':00'}`:phase==='LOADING'?'正在準備…':phase==='CALIBRATION'?'左右校正':phase==='COUNTDOWN'?'準備出發':phase==='FINISHED'||phase==='REST'?'練習完成':'準備出發';
     for(const action of Object.keys(names)){const active=phase==='PLAYING'&&!trackingPaused&&((recent[action]??0)>now||(action==='RUN'&&motion.state==='RUNNING')||(action==='CROUCH'&&motion.state==='CROUCHING')||motion.state===action);
       const card=document.querySelector(`[data-action="${action}"]`),count=progress.counts[action];
       card.classList.toggle('active',active);card.classList.toggle('completed',count>0);

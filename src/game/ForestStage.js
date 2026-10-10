@@ -10,15 +10,15 @@ export function buildForestTimeline({jumpEnabled=true,difficulty='EASY'}={}){
   const impactTime=activeEnd+200,recovery=type==='JUMP'?2000:type==='CROUCH'?2000:1800;
   rows.push({id:rows.length,type,obstacle:OBSTACLES[type]??null,previewStart:start,previewTime:start,activeStart,activeTime:activeStart,activeEnd,activeWindow:activeEnd-activeStart,impactTime,recoveryEnd:type==='RUN'?impactTime:impactTime+recovery,resolved:false,result:null,successTime:null,firstMotionTime:null,impactResolved:false,attempts:[]});};
  add('RUN',0,11800);
- ['JUMP','CROUCH','DODGE_LEFT'].forEach((a,i)=>add(a,12000+i*12000));
- ['DODGE_RIGHT','JUMP','CROUCH'].forEach((a,i)=>add(a,48000+i*12000));
- ['DODGE_LEFT','DODGE_RIGHT'].forEach((a,i)=>add(a,84000+i*12000));
- add('RUN',108000,119800);return rows;
+ ['JUMP','CROUCH','DODGE_LEFT','DODGE_RIGHT'].forEach((a,i)=>add(a,12000+i*8000));
+ ['JUMP','DODGE_LEFT','CROUCH','DODGE_RIGHT','JUMP'].forEach((a,i)=>add(a,44000+i*8000));
+ ['CROUCH','DODGE_RIGHT','DODGE_LEFT'].forEach((a,i)=>add(a,84000+i*8000));
+ add('RUN',108000,119800);for(let i=2;i<rows.length;i++){const extra=Math.max(0,6000-(rows[i].previewStart-rows[i-1].recoveryEnd));if(extra)for(let j=i;j<rows.length;j++)for(const key of ['previewStart','previewTime','activeStart','activeTime','activeEnd','impactTime','recoveryEnd'])rows[j][key]+=extra;}return rows;
 }
 /** One game clock owns prompts, scoring windows, obstacle positions and impact.
  * Pose observations are stamped with this clock; render timers never score. */
 export class ForestStage {
- constructor(options={}){this.events=buildForestTimeline(options);this.duration=120000;this.time=0;this.score=0;this.energy=20;this.combo=0;this.bestCombo=0;this.stars=0;this.distance=0;this.runTime=0;this.runHeld=0;this.runGap=0;this.idleTime=0;this.centerHeld=0;this.centerReady=true;this.paused=false;this.finished=false;this.speed=.6;this.motion={state:'CENTER',runState:'IDLE',runIntensity:0,events:[]};this.observedEventId=null;this.lastRunSampleTime=null;this.notices=[];this.lastFeedback=null;this.log=[];this.performance={pose:[],render:[]};}
+ constructor(options={}){this.events=buildForestTimeline(options);this.duration=this.events.at(-1).impactTime;this.segments=SEGMENTS.map((row,i)=>({...row,start:i===0?0:this.events[[0,1,5,10][i]].previewStart,end:i===3?this.duration:this.events[[1,5,10][i]].previewStart}));this.time=0;this.score=0;this.energy=20;this.combo=0;this.bestCombo=0;this.stars=0;this.distance=0;this.runTime=0;this.runHeld=0;this.runGap=0;this.idleTime=0;this.centerHeld=0;this.centerReady=true;this.paused=false;this.finished=false;this.speed=.6;this.motion={state:'CENTER',runState:'IDLE',runIntensity:0,events:[]};this.observedEventId=null;this.lastRunSampleTime=null;this.notices=[];this.lastFeedback=null;this.log=[];this.performance={pose:[],render:[]};}
  currentEvent(){return this.events.find(e=>this.time>=e.previewStart&&this.time<e.recoveryEnd)??null;}
  setJumpEnabled(enabled){if(!enabled)for(const e of this.events)if(!e.resolved&&e.type==='JUMP'){e.type='CROUCH';e.obstacle='BRANCH';}}
  pause(value=true){this.paused=value;if(value){this.lastRunSampleTime=null;this.runHeld=0;this.runGap=0;this.motion={state:'LOST_TRACKING',runState:'IDLE',runIntensity:0,events:[]};}}
@@ -33,7 +33,7 @@ export class ForestStage {
   const gate=this.events.find(e=>!e.resolved&&e.type.startsWith('DODGE')&&this.time<e.activeStart&&next>=e.activeStart);
   if(gate&&!this.centerReady)next=gate.activeStart-.001;
   const seconds=(next-this.time)/1000;this.time=next;
-  const running=this.motion.runState==='RUNNING';const target=Math.min(1.2,(running?1+clamp(this.motion.runIntensity??0,0,1)*.15:.6)*(this.time>=84000?1.12:1));
+  const running=this.motion.runState==='RUNNING';const target=Math.min(1.2,(running?1+clamp(this.motion.runIntensity??0,0,1)*.15:.6)*(this.time>=this.segments[3].start?1.12:1));
   this.speed+=(target-this.speed)*Math.min(1,seconds*3);this.distance+=this.speed*seconds;
   const collected=Math.floor(this.distance/4)-Math.floor((this.distance-this.speed*seconds)/4);if(collected>0){this.stars+=collected;this.score+=collected*10;this.notices.push({result:'STAR',time:this.time});}
   if(running){this.runTime+=seconds;this.score+=seconds*2;this.energy=clamp(this.energy+seconds*2,0,100);this.idleTime=0;}
@@ -55,7 +55,7 @@ export class ForestStage {
   }else if(!(motion.events??[]).includes(e.type))return false;
   this.resolve(e,'SUCCESS');return true;
  }
- snapshot(){const e=this.currentEvent(),segment=SEGMENTS.find(s=>this.time>=s.start&&this.time<s.end)??SEGMENTS.at(-1);
+ snapshot(){const e=this.currentEvent(),segment=this.segments.find(s=>this.time>=s.start&&this.time<s.end)??this.segments.at(-1);
   let state='ACTIVE',prompt='RUN';const waiting=!!e&&e.type.startsWith('DODGE')&&!this.centerReady&&this.time>=e.activeStart-.01&&this.time<e.activeStart;
   if(e){if(e.result==='SUCCESS'&&this.time-e.successTime<700){state='SUCCESS';prompt=e.type;}
    else if(e.type==='RUN'&&e.result==='SUCCESS'){state='ACTIVE';prompt='RUN';}
@@ -67,7 +67,7 @@ export class ForestStage {
   const next=this.events.filter(row=>row.previewStart>this.time).slice(0,2).map(row=>row.type);
   const impacted=this.events.find(row=>row.obstacle&&row.result==='MISS'&&this.time>=row.impactTime&&this.time<row.impactTime+500);
   const animation=impacted?'HIT':e?.result==='SUCCESS'&&e.type!=='RUN'&&this.time>=e.impactTime-450&&this.time<e.impactTime+450?e.type:'RUN';
-  return {promptState:state,currentPrompt:prompt,nextPrompt:next,promptStartTime:e?.previewStart??this.time,activeWindow:e?[e.activeStart,e.activeEnd]:null,motionDetected:this.motion.state,successTimestamp:e?.successTime??null,runProgress:Math.min(1,this.runHeld/1000),showRunProgress:e?.type==='RUN'&&!e.resolved,combo:this.combo,time:this.time,score:Math.floor(this.score),energy:this.energy,stars:this.stars,speed:this.speed,distance:this.distance,segment,finalRun:this.time>=108000,currentAction:e?.type??'RUN',eventState:e?.result??(e?(this.time<e.activeStart?'PREVIEW':'ACTIVE'):'CRUISING'),event:e,nextAction:next[0]??null,waitingForCenter:waiting,characterState:animation,paused:this.paused,finished:this.finished,lastFeedback:this.lastFeedback};
+  return {promptState:state,currentPrompt:prompt,nextPrompt:next,promptStartTime:e?.previewStart??this.time,activeWindow:e?[e.activeStart,e.activeEnd]:null,motionDetected:this.motion.state,successTimestamp:e?.successTime??null,runProgress:Math.min(1,this.runHeld/1000),showRunProgress:e?.type==='RUN'&&!e.resolved,combo:this.combo,time:this.time,score:Math.floor(this.score),energy:this.energy,stars:this.stars,speed:this.speed,distance:this.distance,segment,finalRun:this.time>=this.events.at(-1).previewStart,currentAction:e?.type??'RUN',eventState:e?.result??(e?(this.time<e.activeStart?'PREVIEW':'ACTIVE'):'CRUISING'),event:e,nextAction:next[0]??null,waitingForCenter:waiting,characterState:animation,paused:this.paused,finished:this.finished,lastFeedback:this.lastFeedback};
  }
  drainNotices(){return this.notices.splice(0);}
  notePerformance(pose,render){if(this.paused||this.finished)return;if(pose>0)this.performance.pose.push(pose);if(render>0)this.performance.render.push(render);}

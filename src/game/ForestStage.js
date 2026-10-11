@@ -3,10 +3,10 @@ const clamp=(v,a,b)=>Math.max(a,Math.min(b,v));
 export const SEGMENTS=[{id:'A',label:'起跑暖身',start:0,end:12000},{id:'B',label:'基礎障礙',start:12000,end:44000},{id:'C',label:'連續組合',start:44000,end:84000},{id:'D',label:'最後衝刺',start:84000,end:120000}];
 const OBSTACLES={JUMP:'CRATE',CROUCH:'BRANCH',DODGE_LEFT:'RIGHT_BLOCK',DODGE_RIGHT:'LEFT_BLOCK'};
 export function buildForestTimeline({jumpEnabled=true,difficulty='EASY'}={}){
- const timing=({EASY:{preview:1500,window:3000},NORMAL:{preview:1300,window:2800},HARD:{preview:1100,window:2600}})[difficulty]??{preview:1500,window:3000};
+ const timing=({EASY:{preview:1200,window:3000},NORMAL:{preview:1000,window:2800},HARD:{preview:850,window:2600}})[difficulty]??{preview:1500,window:3000};
  const order=['RUN','JUMP','DODGE_LEFT','CROUCH','DODGE_RIGHT','RUN','DODGE_LEFT','JUMP','DODGE_RIGHT','CROUCH','JUMP','DODGE_LEFT','RUN','CROUCH','DODGE_RIGHT','JUMP','DODGE_LEFT','CROUCH','DODGE_RIGHT','RUN'];
- return order.map((original,id)=>{const type=original==='JUMP'&&!jumpEnabled?'CROUCH':original,start=id*6000,activeStart=start+(type==='RUN'?2600:timing.preview),activeEnd=type==='RUN'?start+5800:activeStart+timing.window;
- return {id,type,obstacle:OBSTACLES[type]??null,previewStart:start,previewTime:start,activeStart,activeTime:activeStart,activeEnd,activeWindow:activeEnd-activeStart,impactTime:activeEnd+200,recoveryEnd:start+6000,resolved:false,result:null,successTime:null,firstMotionTime:null,impactResolved:false,attempts:[]};});
+ return order.map((original,id)=>{const type=original==='JUMP'&&!jumpEnabled?'CROUCH':original,start=id*6000,activeStart=start+(type==='RUN'?(id===19?2800:3000):timing.preview),nominalActiveEnd=type==='RUN'?activeStart+2800:activeStart+timing.window,activeEnd=type==='RUN'?nominalActiveEnd+400:nominalActiveEnd;
+ return {id,type,obstacle:OBSTACLES[type]??null,previewStart:start,previewTime:start,activeStart,activeTime:activeStart,nominalActiveEnd,bufferWindow:type==='RUN'?400:0,activeEnd,activeWindow:activeEnd-activeStart,impactTime:type==='RUN'?activeEnd:activeEnd+200,slotEnd:start+6000,recoveryEnd:Math.max(start+6000,activeEnd),resolved:false,result:null,successTime:null,firstMotionTime:null,impactResolved:false,attempts:[]};});
 }
 export function obstacleProgress(e,time){
  const duration=e.impactTime-e.previewStart;
@@ -58,16 +58,16 @@ export class ForestStage {
  snapshot(){const e=this.currentEvent(),segment=this.segments.find(s=>this.time>=s.start&&this.time<s.end)??this.segments.at(-1);
   let state='RECOVERY',prompt=null;const waiting=!!e&&e.type.startsWith('DODGE')&&!this.centerReady&&this.time>=e.activeStart-.01&&this.time<e.activeStart;
   if(e){if(e.result==='SUCCESS'&&this.time-e.successTime<700){state='SUCCESS';prompt=e.type;}
-   else if(e.type==='RUN'&&e.result==='SUCCESS'){state='ACTIVE';prompt='RUN';}
+   else if(e.type==='RUN'&&e.result==='SUCCESS'){state='SUCCESS';prompt='RUN';}
    else if(this.time<e.activeStart){state='PREVIEW';prompt=e.type;}
    else if(!e.resolved){state='ACTIVE';prompt=e.type;}
    else if(e.result==='MISS'&&this.time<e.impactTime+500){state='MISS';prompt=e.type;}
    else {state='RECOVERY';prompt=null;}}
   if(this.finished)state='FINISHED';
-  const next=this.events.filter(row=>row.previewStart>this.time).slice(0,2).map(row=>row.type);
+  const next=this.events.filter(row=>row.previewStart>(e?.previewStart??this.time)).slice(0,2).map(row=>row.type);
   const impacted=this.events.find(row=>row.obstacle&&row.result==='MISS'&&this.time>=row.impactTime&&this.time<row.impactTime+500);
-  const animation=impacted?'HIT':e?.result==='SUCCESS'&&e.type!=='RUN'&&this.time>=e.successTime&&this.time<e.successTime+900?e.type:e?.type==='RUN'?'RUN':'IDLE';
-  return {promptState:state,currentPrompt:prompt,nextPrompt:next,promptStartTime:e?.previewStart??this.time,activeWindow:e?[e.activeStart,e.activeEnd]:null,forestPrompt:true,motionDetected:this.motion.state,successTimestamp:e?.successTime??null,runProgress:Math.min(1,this.runHeld/1000),showRunProgress:e?.type==='RUN'&&!e.resolved,slotAction:e?.type??null,combo:this.combo,time:this.time,score:Math.floor(this.score),energy:this.energy,stars:this.stars,speed:this.speed,distance:this.distance,segment,finalRun:this.time>=this.events.at(-1).previewStart,currentAction:e?.type??'RUN',eventState:e?.result??(e?(this.time<e.activeStart?'PREVIEW':'ACTIVE'):'CRUISING'),event:e,nextAction:next[0]??null,waitingForCenter:waiting,characterState:animation,paused:this.paused,finished:this.finished,lastFeedback:this.lastFeedback};
+  const animation=impacted?'HIT':e?.result==='SUCCESS'&&e.type!=='RUN'&&this.time>=e.successTime&&this.time<e.successTime+900?e.type:this.finished?'IDLE':e?.type==='RUN'&&this.time>=e.activeStart?'RUN':'WALK';
+  return {promptState:state,currentPrompt:prompt,nextPrompt:next,promptStartTime:e?.previewStart??this.time,activeWindow:e?[e.activeStart,e.activeEnd]:null,forestPrompt:true,runBufferActive:e?.type==='RUN'&&!e.resolved&&this.time>=e.nominalActiveEnd,motionDetected:this.motion.state,successTimestamp:e?.successTime??null,runProgress:Math.min(1,this.runHeld/1000),showRunProgress:e?.type==='RUN'&&!e.resolved,slotAction:e?.type??null,combo:this.combo,time:this.time,score:Math.floor(this.score),energy:this.energy,stars:this.stars,speed:this.speed,distance:this.distance,segment,finalRun:this.time>=this.events.at(-1).previewStart,currentAction:e?.type??'RUN',eventState:e?.result??(e?(this.time<e.activeStart?'PREVIEW':'ACTIVE'):'CRUISING'),event:e,nextAction:next[0]??null,waitingForCenter:waiting,characterState:animation,paused:this.paused,finished:this.finished,lastFeedback:this.lastFeedback};
  }
  drainNotices(){return this.notices.splice(0);}
  notePerformance(pose,render){if(this.paused||this.finished)return;if(pose>0)this.performance.pose.push(pose);if(render>0)this.performance.render.push(render);}

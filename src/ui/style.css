@@ -90,3 +90,8 @@ body[data-mode=forest] .start-area{max-width:64%}
 .prompt-stage[data-direct-cue=true] .prompt-symbol{opacity:1;transform:none}
 .prompt-stage[data-direct-cue=true] .prompt-phase:empty{display:none}
 .forest-character[data-state=RUN]{animation:ninja-run .28s ease-in-out infinite alternate}
+
+.forest-character[data-state=WALK]{animation:ninja-run .55s ease-in-out infinite alternate}
+.forest-character[data-state=RUN]::after{content:'';position:absolute;left:-40%;top:45%;width:50%;height:25%;background:repeating-linear-gradient(0deg,transparent 0 8px,#fff5b5 8px 12px,transparent 12px 22px);opacity:.9;animation:turbo-trail .18s ease-in-out infinite alternate;pointer-events:none}
+@keyframes turbo-trail{to{transform:translateX(-15px);opacity:.4}}
+@media(prefers-reduced-motion:reduce){.forest-character::after{animation:none!important}}

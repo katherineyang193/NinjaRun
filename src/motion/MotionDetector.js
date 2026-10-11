@@ -1,9 +1,10 @@
+import {ArmRunAssist} from './ArmRunAssist.js';
 const clamp=v=>Math.max(0,Math.min(1,v));
 /** Deterministic pose-time state machine. Jump > Crouch > Dodge > Run. */
 export class MotionDetector {
   constructor({jumpEnabled=true}={}) {this.jumpEnabled=jumpEnabled;this.reset();}
   reset() {
-    this.state='CENTER';this.previous=null;this.smooth=null;this.lastTime=null;
+    this.armAssist=new ArmRunAssist();this.state='CENTER';this.previous=null;this.smooth=null;this.lastTime=null;
     this.gates={};this.cooldown={jump:-Infinity,crouch:-Infinity,dodge:-Infinity};
     this.jumpArmed=true;this.crouchArmed=true;this.dodgeArmed=true;
     this.stepSide=null;this.steps=[];this.runIntensity=0;this.runThreshold=.010;
@@ -20,7 +21,7 @@ export class MotionDetector {
     this.jumpArmed=false;this.crouchArmed=false;this.dodgeArmed=false;
     return {state:this.state,runState:'IDLE',runIntensity:0,events:[]};
   }
-  update(input, now, tracked=true) {
+  update(input, now, tracked=true, {runRequested=false}={}) {
     if(!tracked||!input)return this.lost();
     if(this.lastTime!==null&&(now<=this.lastTime||now-this.lastTime>450))return this.lost();
     const dt=this.lastTime===null?33:now-this.lastTime;this.lastTime=now;
@@ -41,7 +42,7 @@ export class MotionDetector {
     const jumpConfirmed=this.confirm('jump',jump,now,65)&&now-(this.gates.jumpVelocity??-Infinity)<240;
     const crouch=f.hipRise<-.065&&f.shoulderRise<-.055&&Math.abs(f.hipRise-f.shoulderRise)<.12;
     const crouchConfirmed=this.confirm('crouch',crouch,now,100);
-    const lateral=legsVisible&&Math.abs(f.playerX)>.12&&Math.abs(f.playerShoulderX)>.085&&Math.sign(f.playerX)===Math.sign(f.playerShoulderX);
+    const lateral=!runRequested&&legsVisible&&Math.abs(f.playerX)>.12&&Math.abs(f.playerShoulderX)>.085&&Math.sign(f.playerX)===Math.sign(f.playerShoulderX);
     const dodgeSide=f.playerX<0?'DODGE_LEFT':'DODGE_RIGHT';
     const dodgeConfirmed=this.confirm('dodge_'+dodgeSide,lateral,now,95);
     this.confirm('dodge_'+(dodgeSide==='DODGE_LEFT'?'DODGE_RIGHT':'DODGE_LEFT'),false,now);
@@ -88,10 +89,13 @@ export class MotionDetector {
       const running=this.steps.length>=requiredSteps&&now-this.steps.at(-1).time<1150;
       this.runIntensity=running?clamp(.4+(this.steps.length-3)*.12):0;
     }
+    const armRunning=!(jumping||crouching||dodging)&&this.armAssist.update(f,now);
+    if(jumping||crouching||dodging)this.armAssist.reset();
+    if(armRunning)this.runIntensity=Math.max(this.runIntensity,.45);
     const running=this.runIntensity>0;
     const next=jumping?'JUMPING':crouching?'CROUCHING':dodging?dodgeSide:running?'RUNNING':'CENTER';
     if(next==='RUNNING'&&this.state!=='RUNNING')events.push('RUN');
     this.state=next;
-    return {state:next,runState:running?'RUNNING':'IDLE',runIntensity:this.runIntensity,stepCount:this.steps.length,runThreshold:this.runThreshold,runCenter:this.runCenter,runResume:now-this.lastSpecialTime<4000,events,features:f};
+    return {state:next,runState:running?'RUNNING':'IDLE',runIntensity:this.runIntensity,stepCount:this.steps.length,runSource:armRunning?'ARMS_AND_LEGS':running?'LEGS':'NONE',armSteps:this.armAssist.arms.length,runThreshold:this.runThreshold,runCenter:this.runCenter,runResume:now-this.lastSpecialTime<4000,events,features:f};
   }
 }

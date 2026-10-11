@@ -27,7 +27,8 @@ export function poseFeatures(landmarks, aspect = 4/3, {allowLowerBodyMissing=fal
   const kneeY=lowerBodyVisible?mean(p.leftKnee.y,p.rightKnee.y):null;
   const anklesVisible=visible(p.leftAnkle)&&visible(p.rightAnkle);
   const ankleY=anklesVisible?mean(p.leftAnkle.y,p.rightAnkle.y):lowerBodyVisible?kneeY+(kneeY-hipY)*.95:null;
-  return {p, hipX, hipY, shoulderX, shoulderY, kneeY, ankleY, anklesVisible,lowerBodyVisible,
+  const armsVisible=visible(p.leftWrist)&&visible(p.rightWrist)&&p.leftWrist.y>p.leftShoulder.y+.02&&p.rightWrist.y>p.rightShoulder.y+.02;
+  return {armsVisible,armDifference:armsVisible?(p.leftWrist.y-p.leftShoulder.y)-(p.rightWrist.y-p.rightShoulder.y):0,p, hipX, hipY, shoulderX, shoulderY, kneeY, ankleY, anklesVisible,lowerBodyVisible,
     bodyHeight: ankleY===null?null:Math.max(.15,ankleY-p.head.y),
     torsoHeight: hipY-shoulderY,
     leftLeg:lowerBodyVisible?p.leftKnee.y-p.leftHip.y:null, rightLeg:lowerBodyVisible?p.rightKnee.y-p.rightHip.y:null,

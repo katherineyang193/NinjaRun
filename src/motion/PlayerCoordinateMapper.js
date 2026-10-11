@@ -10,6 +10,7 @@ export class PlayerCoordinateMapper {
   map(features, baseline) {
     const scale=baseline.baselineBodyHeight;
     return {...features,
+      armDifference:(features.armDifference??0)/scale,
       playerX:(features.hipX-baseline.baselineHipX)*this.calibration.playerRightSign/scale,
       playerShoulderX:(features.shoulderX-baseline.baselineShoulderX)*this.calibration.playerRightSign/scale,
       hipRise:(baseline.baselineHipY-features.hipY)/scale,

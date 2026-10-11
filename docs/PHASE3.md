@@ -51,3 +51,10 @@ SYNC-8：真人五種全通過後不再改動辨識。每招從12秒縮短至6�
 - Desktop prompt occupies 42%–68.5% horizontal space. Camera occupies the right 30%, from 3% to 90% of stage height.
 - Preserve 120s, 40/40/20 time allocation, detector thresholds, and RUN-only 3s preparation.
 - Automated synthetic tests do not establish human RUN success rate or Webcam Pose FPS.
+
+## RUN-10
+- Forest achievement cards consume only SUCCESS notices, matching the final report; detector events outside active windows no longer inflate counts. Free practice still counts detected actions.
+- Arm assistance requires three alternating arm swings plus two recent alternating small leg movements. Wrist visibility, below-shoulder location, pose confirmation, amplitude and fresh leg activity are required. Arms alone do not count; assistance expires after 850ms without new steps.
+- During explicit RUN slots, lateral drift does not become DODGE. Other action slots retain existing left/right logic. Visible torso outside the inset guide can keep tracking; missing torso still pauses the game.
+- Camera center cross uses fitted video geometry, follows viewport sizing, and remains visible with skeleton disabled.
+- Developer mode reports arm steps and RUN signal source. Public synthetic preview includes small-step arm-assist replay. Human success rate and Webcam FPS require physical validation.

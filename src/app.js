@@ -3,19 +3,19 @@ import {PoseManager} from './pose/PoseManager.js';
 import {SettingsManager} from './settings/SettingsManager.js?v=prompt1';
 import {MirrorController} from './motion/MirrorController.js';
 import {CalibrationManager} from './motion/CalibrationManager.js';
-import {PlayerCoordinateMapper} from './motion/PlayerCoordinateMapper.js?v=body3';
+import {PlayerCoordinateMapper} from './motion/PlayerCoordinateMapper.js?v=run10';
 import {TrackingManager} from './motion/TrackingManager.js';
-import {MotionDetector} from './motion/MotionDetector.js?v=sync9b';
+import {MotionDetector} from './motion/MotionDetector.js?v=run10';
 import {MotionProgress} from './motion/MotionProgress.js';
-import {poseFeatures} from './motion/pose-features.js?v=body3';
-import {AudioManager} from './audio/AudioManager.js?v=sync9b';
-import {runSelfTest} from './dev/self-test.js?v=body3';
-import {bodyTrackable,drawTrackingOverlay} from './ui/TrackingOverlay.js?v=body3';
+import {poseFeatures} from './motion/pose-features.js?v=run10';
+import {AudioManager} from './audio/AudioManager.js?v=run10';
+import {runSelfTest} from './dev/self-test.js?v=run10';
+import {bodyTrackable,drawTrackingOverlay} from './ui/TrackingOverlay.js?v=run10';
 import {PromptSequence} from './game/PromptSequence.js?v=run2';
-import {PromptView} from './ui/PromptView.js?v=sync9b';
-import {ForestStage} from './game/ForestStage.js?v=sync9b';
-import {forestDebugText,forestReportText} from './ui/StageReport.js?v=sync9b';
-import {ForestView} from './ui/ForestView.js?v=sync9b';
+import {PromptView} from './ui/PromptView.js?v=run10';
+import {ForestStage} from './game/ForestStage.js?v=run10';
+import {forestDebugText,forestReportText} from './ui/StageReport.js?v=run10';
+import {ForestView} from './ui/ForestView.js?v=run10';
 const $=id=>document.getElementById(id);
 const settings=new SettingsManager(),mirror=new MirrorController(settings),calibration=new CalibrationManager();
 const tracking=new TrackingManager(),detector=new MotionDetector(settings.value),audio=new AudioManager(settings);
@@ -88,8 +88,8 @@ function processPose(lm,now){
     }
   }else if(phase==='PLAYING'){
     if($('settingsDialog').open){forest?.pause();lastMotionTime=null;return;}
-    motion=detector.update(mapper.map(features,baseline),now,true);
-    progress.record(motion.events);
+    motion=detector.update(mapper.map(features,baseline),now,true,{runRequested:playMode==='forest'&&forest.currentEvent()?.type==='RUN'});
+    if(playMode!=='forest')progress.record(motion.events);
     if(playMode==='forest'){forest.pause(false);const gap=lastMotionTime===null?0:now-lastMotionTime;lastMotionTime=now;forest.observe(motion,gap);forestFeedback();promptView.update(forest.snapshot(),false);}
     if(playMode==='guided'){const gap=lastMotionTime===null?0:Math.min(120,now-lastMotionTime);lastMotionTime=now;if(sequence.observe(motion,gap))audio.play('success');promptView.update(sequence.snapshot(),false);}
     const achievement=progress.snapshot(settings.value.jumpEnabled);
@@ -100,7 +100,7 @@ function processPose(lm,now){
       clearTimeout(feedbackTimer);feedbackTimer=setTimeout(()=>{$('feedback').textContent='';},650);}
   }
 }
-function forestFeedback(){for(const n of forest.drainNotices()){if(n.result==='SUCCESS')audio.play(n.type);else if(n.result==='STAR')audio.play('star');else if(n.result==='HIT')audio.play('softHit');}}
+function forestFeedback(){for(const n of forest.drainNotices()){if(n.result==='SUCCESS'){progress.recordResults([n]);audio.play(n.type);}else if(n.result==='STAR')audio.play('star');else if(n.result==='HIT')audio.play('softHit');}}
 function finish(){if(playMode==='forest'){lastForestReport=forest.report();$('stageReport').hidden=false;$('stageReport').textContent=forestReportText(lastForestReport);}
 const promptReport=playMode==='guided'?sequence.report():null;const report={...progress.counts,elapsed,runTime};release();phase='FINISHED';completions++;
   $('summary').hidden=false;$('summary').querySelector('h2').textContent=lastForestReport?'森林冒險完成！ ✦':'動作練習完成！ ✦';$('summaryText').textContent=`動動時間 ${Math.round(report.elapsed)} 秒　·　跑動 ${Math.round(report.runTime)} 秒　·　跳躍 ${report.JUMP} 次　·　蹲下 ${report.CROUCH} 次　·　閃避 ${report.DODGE_LEFT+report.DODGE_RIGHT} 次。超級有活力！`;
@@ -134,7 +134,7 @@ function frame(now){
       $('count'+action).textContent=count>0?`✓ ${count} 次`:'尚未完成';
       $('status'+action).textContent=action==='JUMP'&&!settings.value.jumpEnabled?'已關閉跳躍':active?'● 正在做':count>0?'✓ 已完成':'等你出招';}
     const achievement=progress.snapshot(settings.value.jumpEnabled);
-    $('practiceProgress').textContent=`已完成 ${achievement.completed} / ${achievement.total} 招${achievement.allCompleted?' ✓':''}`;
+    $('practiceProgress').textContent=`${playMode==='forest'?'關卡成功 · ':''}已完成 ${achievement.completed} / ${achievement.total} 招${achievement.allCompleted?' ✓':''}`;
     $('lastSuccess').textContent=achievement.lastAction?`上一招：${actionLabels[achievement.lastAction]} ✓（已保留）`:'成功勾勾會保留';
     $('runMeter').value=motion.runIntensity;$('runLabel').textContent=motion.runState==='RUNNING'?'跑起來了 ✓':motion.stepCount>0?`踏步 ${motion.stepCount}／3 · 繼續左右交替`:'左右腳小步踏起來';
     document.querySelector('.ninja-zone').dataset.state=trackingPaused?'CENTER':motion.state;
@@ -145,7 +145,7 @@ function frame(now){
       `Pose confidence: ${v(features?.confidence)}   Hip X: ${v(features?.hipX)}   Hip Y: ${v(features?.hipY)}`,
       `baseline X: ${v(baseline?.baselineHipX)}   baseline Y: ${v(baseline?.baselineHipY)}   average frames: ${baseline?.frames??0}`,
       `motionState: ${motion.state}   runState: ${motion.runState}   runIntensity: ${v(motion.runIntensity)}`,
-      `Knees visible: ${features?.lowerBodyVisible??'—'}   partial-body tracking: ${phase==='PLAYING'}   Run center: ${Number.isFinite(motion.runCenter)?motion.runCenter.toFixed(4):"—"} · Run steps: ${motion.stepCount??0}   knee difference: ${v(motion.features?(motion.features.leftLift-motion.features.rightLift):null)}   run threshold: ${v(motion.runThreshold)}`,
+      `Knees visible: ${features?.lowerBodyVisible??'—'}   partial-body tracking: ${phase==='PLAYING'}   Run center: ${Number.isFinite(motion.runCenter)?motion.runCenter.toFixed(4):"—"} · Run steps: ${motion.stepCount??0} · Arm steps: ${motion.armSteps??0} · Run source: ${motion.runSource??'NONE'}   knee difference: ${v(motion.features?(motion.features.leftLift-motion.features.rightLift):null)}   run threshold: ${v(motion.runThreshold)}`,
       `mirrorMode: ${settings.value.mirrorMode}   displayMirrored: ${mirror.displayMirrored}   mirrorDirection: ${mirror.mirrorDirection??'uncalibrated'}`,
       `Player right raw sign: ${mapper?.calibration.playerRightSign??'—'}   Player X: ${v(motion.features?.playerX)}`,
       `trackingState: ${trackingPaused?'LOST_TRACKING':'TRACKING'}   phase: ${phase}`,

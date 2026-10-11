@@ -5,6 +5,7 @@ export class MotionProgress {
   constructor(){this.reset();}
   reset(){this.counts=Object.fromEntries(ACTIONS.map(action=>[action,0]));this.lastAction=null;}
   record(events){for(const action of events){if(!ACTIONS.includes(action))continue;this.counts[action]++;this.lastAction=action;}}
+  recordResults(notices){this.record(notices.filter(n=>n.result==='SUCCESS').map(n=>n.type));}
   snapshot(jumpEnabled=true){
     const enabled=ACTIONS.filter(action=>jumpEnabled||action!=='JUMP');
     const completed=enabled.filter(action=>this.counts[action]>0).length;

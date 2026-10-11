@@ -33,7 +33,7 @@ export class RunRhythm {
   if(f.lowerBodyVisible===false){this.reset();return {running:false,reason:'KNEES_NOT_VISIBLE',profileValid:!!profile?.valid};}
   if(!profile?.valid&&!allowDefault){this.reset();return {running:false,reason:"PROFILE_UNAVAILABLE",profileValid:false};}
   // Calibration is an initial reference, not a prerequisite for rhythmic steps.
-  const threshold=Math.max(.006,(f.runNoise??0)*5,profile?.valid?Math.min(.012,profile.amplitudeThreshold):.008);
+  const threshold=Math.max(.006,(f.runNoise??0)*3.5,profile?.valid?Math.min(.010,profile.amplitudeThreshold):.008);
   if(this.rows.length&&now-this.rows.at(-1).time>250)this.reset();
   this.rows.push({time:now,value:f.leftLift-f.rightLift,left:f.leftLift,right:f.rightLift});this.rows=this.rows.filter(s=>now-s.time<=2400);
   const stats=rhythmStats(this.rows,threshold);

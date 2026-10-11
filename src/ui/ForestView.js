@@ -1,11 +1,11 @@
-import {obstacleProgress} from '../game/ForestStage.js?v=run13';
+import {obstacleProgress} from '../game/ForestStage.js?v=run14';
 /** Lightweight original canvas scenery; throttled independently of Pose. */
 export class ForestView {
  constructor(root){this.root=root;root.innerHTML='<canvas aria-label="原創森林：天空、樹木、道路與障礙"></canvas><div class="forest-character" aria-label="小忍者"><img alt="原創小忍者"></div><div class="forest-hud"><strong class="forest-score">0</strong><label>活力值 <progress max="100" value="20" aria-label="活力值"></progress></label><strong class="forest-combo"></strong></div><div class="forest-segment"></div>';
   this.canvas=root.querySelector('canvas');this.actor=root.querySelector('.forest-character');this.actor.querySelector('img').src=new URL('../../assets/ninja.svg',import.meta.url).href;this.lastDraw=-Infinity;this.lastCost=0;this.frames=0;this.started=null;this.fps=0;this.hudAt=-Infinity;
  }
  reset(){this.lastDraw=-Infinity;this.frames=0;this.started=null;this.fps=0;}
- update(s,now,poseFps=0){this.root.dataset.paused=String(s.paused);this.actor.dataset.state=s.characterState;if(s.characterState==='RUN'&&now-this.hudAt>=100)this.actor.style.animationDuration=`${.7/Math.max(.6,s.speed)}s`;
+ update(s,now,poseFps=0){this.root.dataset.paused=String(s.paused);this.actor.dataset.state=s.characterState;const sprite=s.characterState==='RUN'?'ninja-run.svg':'ninja.svg';if(this.sprite!==sprite){this.sprite=sprite;this.actor.querySelector('img').src=(sprite==='ninja-run.svg'?new URL('../../assets/ninja-run.svg',import.meta.url):new URL('../../assets/ninja.svg',import.meta.url)).href;}if(s.characterState==='RUN'&&now-this.hudAt>=100)this.actor.style.animationDuration=`${.7/Math.max(.6,s.speed)}s`;
   const motionAge=s.event?.successTime==null?0:s.time-s.event.successTime,t=Math.max(0,Math.min(1,motionAge/900)),arc=Math.sin(Math.PI*t);
   this.actor.style.transform=s.characterState==='JUMP'?`translateY(${-Math.min(180,this.root.clientHeight*.25)*arc}px)`:s.characterState==='CROUCH'?`scaleY(${1-.45*arc})`:s.characterState==='DODGE_LEFT'?`translateX(${-this.root.clientWidth*.07*arc}px) rotate(${-12*arc}deg)`:s.characterState==='DODGE_RIGHT'?`translateX(${this.root.clientWidth*.07*arc}px) rotate(${12*arc}deg)`:'';
   if(now-this.hudAt>=100){this.hudAt=now;this.root.querySelector('.forest-score').textContent=`★ ${s.score} · ✦ ${s.stars}`;this.root.querySelector('progress').value=s.energy;this.root.querySelector('.forest-combo').textContent=s.combo>1?`COMBO ×${s.combo}`:'';this.root.querySelector('.forest-segment').textContent=s.finalRun?'FINAL RUN · 衝向終點！':`${s.segment.id} · ${s.segment.label}`;}

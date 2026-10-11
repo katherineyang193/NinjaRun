@@ -85,3 +85,8 @@ body[data-mode=forest] .start-area{max-width:64%}
 @media(max-width:680px){
  body[data-mode=forest] .camera-box{height:auto;width:36%;aspect-ratio:var(--camera-aspect,1.333333)}
 }
+
+/* Direct graphical previews: no waiting card for non-RUN moves. */
+.prompt-stage[data-direct-cue=true] .prompt-symbol{opacity:1;transform:none}
+.prompt-stage[data-direct-cue=true] .prompt-phase:empty{display:none}
+.forest-character[data-state=RUN]{animation:ninja-run .28s ease-in-out infinite alternate}

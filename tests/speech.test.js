@@ -1,0 +1,10 @@
+import test from 'node:test';
+import assert from 'node:assert/strict';
+import {SpeechManager} from '../src/audio/SpeechManager.js';
+import {SettingsManager} from '../src/settings/SettingsManager.js';
+function setup(voices=[{lang:'zh-TW',localService:true}]){const calls=[],settings={value:{voiceHints:true}},env={SpeechSynthesisUtterance:class {constructor(text){this.text=text;}},speechSynthesis:{getVoices:()=>voices,cancel:()=>calls.push('cancel'),speak:u=>calls.push(u)}};return {m:new SpeechManager(settings,env),calls,settings,env};}
+const snap=(state='ACTIVE',id=1,action='JUMP')=>({promptState:state,event:{id},currentPrompt:action});
+test('voice prompts speak only at ACTIVE, once per event, and cancel stale instructions',()=>{const {m,calls}=setup();m.update(snap('PREVIEW'));assert.equal(calls.filter(x=>x.text).length,0);m.update(snap());m.update(snap());assert.deepEqual(calls.filter(x=>x.text).map(x=>x.text),['跳！']);m.update(snap('SUCCESS'));assert.equal(calls.at(-1),'cancel');m.update(snap('ACTIVE',2,'DODGE_LEFT'));assert.equal(calls.at(-1).text,'往左閃！');});
+test('pause and disabled settings cancel speech and permit a fresh current cue on resume',()=>{const {m,calls,settings}=setup();m.update(snap());m.update(snap(),true);assert.equal(calls.at(-1),'cancel');m.update(snap());assert.equal(calls.filter(x=>x.text).length,2);settings.value.voiceHints=false;m.update(snap());assert.equal(calls.at(-1),'cancel');assert.equal(m.say('跑！'),false);});
+test('only local Chinese voices are used; missing API or voice fails quietly',()=>{const {m,calls}=setup([{lang:'zh-TW',localService:false},{lang:'en-US',localService:true}]);assert.equal(m.say('跳！'),false);assert.equal(calls.length,0);assert.equal(new SpeechManager({value:{voiceHints:true}},{}).say('跳！'),false);});
+test('voiceHints setting persists independently of sound effects',()=>{let saved;const storage={getItem:()=>saved??null,setItem:(_,v)=>{saved=v;}};const s=new SettingsManager(storage);s.update({voiceHints:false,sound:true});const reload=new SettingsManager(storage);assert.equal(reload.value.voiceHints,false);assert.equal(reload.value.sound,true);});

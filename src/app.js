@@ -1,25 +1,27 @@
-import {RunCalibration} from './motion/RunRhythm.js?v=run16';
+import {RunCalibration} from './motion/RunRhythm.js?v=run17';
 import {CameraManager,cameraErrorMessage} from './camera/CameraManager.js';
 import {PoseManager} from './pose/PoseManager.js';
-import {SettingsManager} from './settings/SettingsManager.js?v=prompt1';
+import {SettingsManager} from './settings/SettingsManager.js?v=run17';
 import {MirrorController} from './motion/MirrorController.js';
 import {CalibrationManager} from './motion/CalibrationManager.js';
-import {PlayerCoordinateMapper} from './motion/PlayerCoordinateMapper.js?v=run16';
+import {PlayerCoordinateMapper} from './motion/PlayerCoordinateMapper.js?v=run17';
 import {TrackingManager} from './motion/TrackingManager.js';
-import {MotionDetector} from './motion/MotionDetector.js?v=run16';
+import {MotionDetector} from './motion/MotionDetector.js?v=run17';
 import {MotionProgress} from './motion/MotionProgress.js';
-import {poseFeatures} from './motion/pose-features.js?v=run16';
-import {AudioManager} from './audio/AudioManager.js?v=run16';
-import {runSelfTest} from './dev/self-test.js?v=run16';
-import {bodyTrackable,drawTrackingOverlay} from './ui/TrackingOverlay.js?v=run16';
+import {poseFeatures} from './motion/pose-features.js?v=run17';
+import {SpeechManager} from './audio/SpeechManager.js?v=run17';
+import {AudioManager} from './audio/AudioManager.js?v=run17';
+import {runSelfTest} from './dev/self-test.js?v=run17';
+import {bodyTrackable,drawTrackingOverlay} from './ui/TrackingOverlay.js?v=run17';
 import {PromptSequence} from './game/PromptSequence.js?v=run2';
-import {PromptView} from './ui/PromptView.js?v=run16';
-import {ForestStage} from './game/ForestStage.js?v=run16';
-import {forestDebugText,forestReportText} from './ui/StageReport.js?v=run16';
-import {ForestView} from './ui/ForestView.js?v=run16';
+import {PromptView} from './ui/PromptView.js?v=run17';
+import {ForestStage} from './game/ForestStage.js?v=run17';
+import {forestDebugText,forestReportText} from './ui/StageReport.js?v=run17';
+import {ForestView} from './ui/ForestView.js?v=run17';
 const $=id=>document.getElementById(id);
 const settings=new SettingsManager(),mirror=new MirrorController(settings),calibration=new CalibrationManager();
 const tracking=new TrackingManager(),detector=new MotionDetector(settings.value),audio=new AudioManager(settings);
+const speech=new SpeechManager(settings);
 const progress=new MotionProgress();
 const promptView=new PromptView($('promptStage'));
 const forestView=new ForestView($('forestScene'));
@@ -41,14 +43,14 @@ function applySettings(){forest?.setJumpEnabled(settings.value.jumpEnabled);docu
   detector.jumpEnabled=settings.value.jumpEnabled;$('jumpHelp').textContent=settings.value.jumpEnabled?'輕輕跳，身體一起往上':'家長已關閉跳躍，練習其他四招';
   document.querySelector('[data-action="JUMP"]').classList.toggle('disabled',!settings.value.jumpEnabled);
 }
-function release(){$('forestScene').hidden=true;$('guidedBtn').hidden=false;forest?.pause();$('freeBtn').hidden=false;$('promptStage').hidden=true;document.body.dataset.mode='';epoch++;camera.stop();pose.close();tracking.reset();detector.lost();trackingPaused=true;landmarks=null;features=null;baseline=null;mapper=null;countdownAt=null;
+function release(){speech.reset();$('forestScene').hidden=true;$('guidedBtn').hidden=false;forest?.pause();$('freeBtn').hidden=false;$('promptStage').hidden=true;document.body.dataset.mode='';epoch++;camera.stop();pose.close();tracking.reset();detector.lost();trackingPaused=true;landmarks=null;features=null;baseline=null;mapper=null;countdownAt=null;
   $('cameraBox').hidden=true;$('cameraStatus').textContent='● CAMERA OFF';$('trackingStatus').textContent='等待身體';$('safeZone').dataset.tracking='invalid';$('stopBtn').hidden=true;$('recalibrateBtn').hidden=true;$('startBtn').hidden=false;$('startBtn').disabled=false;
   $('dojo').classList.remove('calibrating');motion={state:'CENTER',runState:'IDLE',runIntensity:0,events:[]};}
 function fail(text){release();phase='ERROR';$('phaseLabel').textContent='LET’S TRY AGAIN';message(text,'準備好後，再按一次開啟鏡頭。');$('startBtn').textContent='再試一次開啟鏡頭 →';}
 async function start(mode='forest'){playMode=mode;
   release();$('guidedBtn').hidden=true;$('freeBtn').hidden=true;forest=playMode==='forest'?new ForestStage(settings.value):null;forestView.reset();lastForestReport=null;$('stageReport').hidden=true;sequence=new PromptSequence(settings.value);lastMotionTime=null;lastPromptState=null;runCalibration.reset();runCalibrationRetries=0;detector.setRunProfile(null);const token=epoch;phase='LOADING';elapsed=0;runTime=0;recent={};progress.reset();
   $('summary').hidden=true;$('startBtn').hidden=true;$('stopBtn').hidden=false;$('phaseLabel').textContent='LET’S GET READY';message('正在開啟鏡頭…','瀏覽器會詢問相機權限。');
-  await audio.unlock();if(token!==epoch)return;
+  await audio.unlock();speech.say('準備出發！');if(token!==epoch)return;
   let loadingTimer;
   try{
     device=await camera.start();if(token!==epoch)return;
@@ -121,7 +123,7 @@ const promptReport=playMode==='guided'?sequence.report():null;const report={...p
   if(promptReport)$('summaryText').textContent+=' 提示挑戰：'+promptReport.map(r=>`${actionLabels[r.action]} ${r.successes}/${r.attempts}（${r.rate===null?'未出題':r.rate+'%'}）`).join(' · ')+`；最高 Combo ${sequence.bestCombo}。`;
   if(lastForestReport)$('summaryText').textContent=`森林冒險完成！ ${Math.round(lastForestReport.durationSeconds)} 秒 · Score ${lastForestReport.score} · 星星 ${lastForestReport.stars} · 活力值 ${lastForestReport.energy} · 跑動 ${lastForestReport.runSeconds.toFixed(1)} 秒 · 最高 Combo ${lastForestReport.bestCombo}。`+' 動作成功率：'+lastForestReport.actions.map(r=>`${actionLabels[r.action]} ${r.successes}/${r.attempts}（${r.rate===null?'未出題':r.rate+'%'}）`).join(' · ');
   if(lastForestReport)$('summaryText').textContent+=' · 提示區段：左右閃 48秒／跳蹲 48秒／跑步 24秒（40%／40%／20%）。';
-  audio.play('finish');message(lastForestReport?'森林冒險完成！':'動作練習完成！','準備好了，就可以再練一次。');$('phaseLabel').textContent='NICE MOVES, NINJA!';
+  audio.play('finish');speech.say('森林冒險完成！');message(lastForestReport?'森林冒險完成！':'動作練習完成！','準備好了，就可以再練一次。');$('phaseLabel').textContent='NICE MOVES, NINJA!';
   if(completions>=3){phase='REST';message('休息一下，喝口水！','休息好了，按下面的按鈕再繼續。');$('startBtn').hidden=true;$('guidedBtn').hidden=true;$('freeBtn').hidden=true;$('continueBtn').hidden=false;}
 }
 function drawSkeleton(){
@@ -136,9 +138,10 @@ function frame(now){
     $('trackingStatus').textContent='回到框框裡～';message('回到框框裡～','找到你的身體就會繼續，不會扣分。');
   }
   if(phase==='COUNTDOWN'&&!trackingPaused){countdownAt??=now;const n=3-Math.floor((now-countdownAt)/1000);
-    if(n>0){message(String(n),'站穩，準備出發！');if(lastCount!==n){audio.play('count');lastCount=n;}}
+    if(n>0){message(String(n),'站穩，準備出發！');if(lastCount!==n){audio.play('count');speech.say(String(n));lastCount=n;}}
     else {phase='PLAYING';$('dojo').classList.remove('calibrating');detector.reset();document.body.dataset.mode=playMode;$('promptStage').hidden=playMode==='free';$('forestScene').hidden=playMode!=='forest';forest?.pause(false);$('phaseLabel').textContent='MOVE LIKE A NINJA';}}
-  if(phase==='PLAYING'&&!trackingPaused&&!document.hidden&&!$('settingsDialog').open){if(playMode==='forest'){forest.pause(false);forest.advance(dt*1000);elapsed=forest.time/1000;forestFeedback();}else elapsed+=dt;if(motion.runState==='RUNNING')runTime+=dt;if(playMode==='guided'){sequence.advance(dt*1000);const snap=sequence.snapshot();if(snap.promptState==='ACTIVE'&&lastPromptState!=='ACTIVE')audio.play('count');lastPromptState=snap.promptState;promptView.update(snap,false);if(snap.promptState==='FINISHED')finish();}else if(playMode==='forest'){promptView.update(forest.snapshot(),false);const snap=forest.snapshot(),key=`${snap.event?.id}:${snap.promptState}`;if(snap.promptState==='ACTIVE'&&key!==lastPromptState)audio.play('count');lastPromptState=key;if(forest.finished)finish();}else if(elapsed>=settings.value.duration)finish();}
+  if((trackingPaused||document.hidden||$('settingsDialog').open)&&speech.key!==null)speech.reset();
+  if(phase==='PLAYING'&&!trackingPaused&&!document.hidden&&!$('settingsDialog').open){if(playMode==='forest'){forest.pause(false);forest.advance(dt*1000);elapsed=forest.time/1000;forestFeedback();}else elapsed+=dt;if(motion.runState==='RUNNING')runTime+=dt;if(playMode==='guided'){sequence.advance(dt*1000);const snap=sequence.snapshot();if(snap.promptState==='ACTIVE'&&lastPromptState!=='ACTIVE')audio.play('count');lastPromptState=snap.promptState;promptView.update(snap,false);speech.update(snap);if(snap.promptState==='FINISHED')finish();}else if(playMode==='forest'){promptView.update(forest.snapshot(),false);const snap=forest.snapshot();speech.update(snap);const key=`${snap.event?.id}:${snap.promptState}`;if(snap.promptState==='ACTIVE'&&key!==lastPromptState)audio.play('count');lastPromptState=key;if(forest.finished)finish();}else if(elapsed>=settings.value.duration)finish();}
   if(phase==='PLAYING'&&playMode==='guided')promptView.update(sequence.snapshot(),trackingPaused);
   if(phase==='PLAYING'&&playMode==='forest'){forest.pause(trackingPaused||document.hidden||$('settingsDialog').open);const snap=forest.snapshot();promptView.update(snap,trackingPaused||document.hidden||$('settingsDialog').open);forestView.update(snap,now,pose.fps);}
   if(now-lastUI>100){if(phase==='PLAYING'&&playMode==='forest')forest.notePerformance(pose.fps,renderFps);lastUI=now;document.body.dataset.phase=phase;$('sessionClock').textContent=phase==='PLAYING'?`${Math.floor(elapsed/60)}:${String(Math.floor(elapsed%60)).padStart(2,'0')} / ${playMode==='forest'?`${Math.floor(forest.duration/60000)}:${String(Math.round(forest.duration/1000)%60).padStart(2,'0')}`:playMode==='guided'?'1:04':settings.value.duration/60+':00'}`:phase==='LOADING'?'正在準備…':phase==='CALIBRATION'?'左右校正':phase==='RUN_CALIBRATION'?'跑步校正':phase==='RUN_SETTLE'?'站穩準備':phase==='COUNTDOWN'?'準備出發':phase==='FINISHED'||phase==='REST'?'練習完成':'準備出發';
@@ -190,11 +193,12 @@ $('modelTestBtn').addEventListener('click',async()=>{
   finally{clearTimeout(timer);pose.close();$('modelTestBtn').disabled=false;$('startBtn').disabled=false;$('guidedBtn').disabled=false;$('freeBtn').disabled=false;$('testStageBtn').disabled=false;}
 });
 $('settingsBtn').addEventListener('click',()=>{for(const key of ['promptSize','mirrorMode','difficulty','duration','gameHomeUrl'])$(key).value=settings.value[key];
-  for(const key of ['jumpEnabled','sound','music','rememberCalibration'])$(key).checked=settings.value[key];$('settingsWarning').textContent=settings.warning;$('settingsDialog').showModal();});
+  speech.reset();$('voiceStatus').textContent=speech.status();for(const key of ['voiceHints','jumpEnabled','sound','music','rememberCalibration'])$(key).checked=settings.value[key];$('settingsWarning').textContent=settings.warning;$('settingsDialog').showModal();});
 $('saveSettings').addEventListener('click',()=>{const patch={};for(const key of ['promptSize','mirrorMode','difficulty','duration','gameHomeUrl'])patch[key]=$(key).value;
-  for(const key of ['jumpEnabled','sound','rememberCalibration'])patch[key]=$(key).checked;settings.update(patch);applySettings();});
+  for(const key of ['voiceHints','jumpEnabled','sound','rememberCalibration'])patch[key]=$(key).checked;settings.update(patch);speech.reset();applySettings();});
 $('clearCalibration').addEventListener('click',()=>{settings.update({calibration:null});if(camera.active)recalibrate();$('settingsWarning').textContent='左右校正已清除，下次開始會重新確認。';});
-document.addEventListener('visibilitychange',()=>{lastRenderTime=null;if(document.hidden){runCalibration.pause();runSettleSince=null;forest?.pause();pose.stop();trackingPaused=true;tracking.reset();motion=detector.lost();}
+document.addEventListener('visibilitychange',()=>{lastRenderTime=null;if(document.hidden){speech.reset();runCalibration.pause();runSettleSince=null;forest?.pause();pose.stop();trackingPaused=true;tracking.reset();motion=detector.lost();}
   else if(camera.active&&['CALIBRATION','COUNTDOWN','PLAYING','RUN_CALIBRATION','RUN_SETTLE'].includes(phase)){lastPoseTime=performance.now();countdownAt=null;pose.start($('cameraVideo'));}});
 globalThis.addEventListener('pagehide',()=>{release();audio.close();});
+$('voiceTest').addEventListener('click',()=>{speech.say('跳！蹲！往左閃！往右閃！跑起來！',true);$('voiceStatus').textContent=speech.status();});
 applySettings();requestAnimationFrame(frame);

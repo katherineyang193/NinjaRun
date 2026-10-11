@@ -22,19 +22,24 @@ export class RunCalibration {
   this.rows.push({time:now,value:f.leftLift-f.rightLift});
   if(this.elapsed<5000)return null;
   const stats=rhythmStats(this.rows),noise=Math.max(.002,(f.runNoise??0)*2.5);
-  if(stats.flips<6||stats.amplitude<Math.max(.008,noise*2))return {valid:false,reason:'再試一次，左右腳輪流小步踏'};
-  return {valid:true,amplitude:stats.amplitude,amplitudeThreshold:Math.max(.006,noise*2,Math.min(.04,stats.amplitude*.45)),frames:this.rows.length};
+  if(stats.flips<4||stats.amplitude<Math.max(.008,noise*2))return {valid:false,reason:'再試一次，左右腳輪流小步踏'};
+  return {valid:true,amplitude:stats.amplitude,amplitudeThreshold:Math.max(.006,noise*2,Math.min(.012,stats.amplitude*.30)),frames:this.rows.length};
  }
 }
 export class RunRhythm {
  constructor(){this.reset();}
  reset(){this.rows=[];}
- update(f,now,profile){
-  if(!profile?.valid||f.lowerBodyVisible===false){this.reset();return {running:false,reason:'NO_PROFILE_OR_KNEES'};}
+ update(f,now,profile,allowDefault=false){
+  if(f.lowerBodyVisible===false){this.reset();return {running:false,reason:'KNEES_NOT_VISIBLE',profileValid:!!profile?.valid};}
+  if(!profile?.valid&&!allowDefault){this.reset();return {running:false,reason:"PROFILE_UNAVAILABLE",profileValid:false};}
+  // Calibration is an initial reference, not a prerequisite for rhythmic steps.
+  const threshold=Math.max(.006,(f.runNoise??0)*5,profile?.valid?Math.min(.012,profile.amplitudeThreshold):.008);
   if(this.rows.length&&now-this.rows.at(-1).time>250)this.reset();
-  this.rows.push({time:now,value:f.leftLift-f.rightLift});this.rows=this.rows.filter(s=>now-s.time<=1800);
-  const stats=rhythmStats(this.rows,profile.amplitudeThreshold);
-  const running=stats.amplitude>=profile.amplitudeThreshold&&stats.flips>=3&&now-(stats.lastFlip??-Infinity)<700;
-  return {...stats,running,threshold:profile.amplitudeThreshold,reason:running?'RHYTHM':stats.amplitude<profile.amplitudeThreshold?'AMPLITUDE_LOW':stats.flips<3?'BUILDING_RHYTHM':'NO_RECENT_STEP'};
+  this.rows.push({time:now,value:f.leftLift-f.rightLift,left:f.leftLift,right:f.rightLift});this.rows=this.rows.filter(s=>now-s.time<=2400);
+  const stats=rhythmStats(this.rows,threshold);
+  const legRange=key=>{const rows=this.rows.map(s=>({value:s[key]}));return quantile(rows,.9)-quantile(rows,.1);};
+  const bothLegs=legRange("left")>=threshold*.25&&legRange("right")>=threshold*.25;
+  const running=bothLegs&&stats.amplitude>=threshold&&stats.flips>=3&&now-(stats.lastFlip??-Infinity)<1000;
+  return {...stats,running,threshold,profileValid:!!profile?.valid,reason:running?'RHYTHM':!bothLegs?'BOTH_LEGS_REQUIRED':stats.amplitude<threshold?'AMPLITUDE_LOW':stats.flips<3?'BUILDING_RHYTHM':'NO_RECENT_STEP'};
  }
 }

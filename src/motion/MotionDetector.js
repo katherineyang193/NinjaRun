@@ -95,7 +95,7 @@ export class MotionDetector {
     if(jumping||crouching||dodging)this.armAssist.reset();
     if(armRunning)this.runIntensity=Math.max(this.runIntensity,.45);
     const legacyRunState=this.runIntensity>0;
-    const rhythm=!(jumping||crouching||dodging)?this.rhythm.update(f,now,this.runProfile):{running:false,reason:'OTHER_ACTION'};
+    const rhythm=!(jumping||crouching||dodging)?this.rhythm.update(input,now,this.runProfile,runRequested):{running:false,reason:'OTHER_ACTION'};
     if(jumping||crouching||dodging)this.rhythm.reset();
     if(rhythm.running)this.runIntensity=Math.max(this.runIntensity,.5);
     const running=this.runIntensity>0;

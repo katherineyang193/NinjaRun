@@ -1,15 +1,17 @@
+import {RunRhythm} from './RunRhythm.js';
 import {ArmRunAssist} from './ArmRunAssist.js';
 const clamp=v=>Math.max(0,Math.min(1,v));
 /** Deterministic pose-time state machine. Jump > Crouch > Dodge > Run. */
 export class MotionDetector {
   constructor({jumpEnabled=true}={}) {this.jumpEnabled=jumpEnabled;this.reset();}
   reset() {
-    this.armAssist=new ArmRunAssist();this.state='CENTER';this.previous=null;this.smooth=null;this.lastTime=null;
+    this.rhythm=new RunRhythm();this.armAssist=new ArmRunAssist();this.state='CENTER';this.previous=null;this.smooth=null;this.lastTime=null;
     this.gates={};this.cooldown={jump:-Infinity,crouch:-Infinity,dodge:-Infinity};
     this.jumpArmed=true;this.crouchArmed=true;this.dodgeArmed=true;
     this.stepSide=null;this.steps=[];this.runIntensity=0;this.runThreshold=.010;
     this.runCenter=0;this.biasSample=null;this.biasSince=null;this.lastLegTime=null;this.lastSpecialTime=-Infinity;
   }
+  setRunProfile(profile){this.runProfile=profile;this.rhythm.reset();}
   confirm(key, condition, now, ms=75, frames=3) {
     if(!condition){delete this.gates[key];return false;}
     this.gates[key]??={since:now,frames:0};this.gates[key].frames++;
@@ -92,10 +94,14 @@ export class MotionDetector {
     const armRunning=!(jumping||crouching||dodging)&&this.armAssist.update(f,now);
     if(jumping||crouching||dodging)this.armAssist.reset();
     if(armRunning)this.runIntensity=Math.max(this.runIntensity,.45);
+    const legacyRunState=this.runIntensity>0;
+    const rhythm=!(jumping||crouching||dodging)?this.rhythm.update(f,now,this.runProfile):{running:false,reason:'OTHER_ACTION'};
+    if(jumping||crouching||dodging)this.rhythm.reset();
+    if(rhythm.running)this.runIntensity=Math.max(this.runIntensity,.5);
     const running=this.runIntensity>0;
     const next=jumping?'JUMPING':crouching?'CROUCHING':dodging?dodgeSide:running?'RUNNING':'CENTER';
     if(next==='RUNNING'&&this.state!=='RUNNING')events.push('RUN');
     this.state=next;
-    return {state:next,runState:running?'RUNNING':'IDLE',runIntensity:this.runIntensity,stepCount:this.steps.length,runSource:armRunning?'ARMS_AND_LEGS':running?'LEGS':'NONE',armSteps:this.armAssist.arms.length,runThreshold:this.runThreshold,runCenter:this.runCenter,runResume:now-this.lastSpecialTime<4000,events,features:f};
+    return {state:next,runState:running?'RUNNING':'IDLE',runIntensity:this.runIntensity,stepCount:this.steps.length,legacyRunState,runDiagnostic:rhythm,runSource:rhythm.running?'PERSONAL_RHYTHM':armRunning?'ARMS_AND_LEGS':running?'LEGS':'NONE',armSteps:this.armAssist.arms.length,runThreshold:this.runThreshold,runCenter:this.runCenter,runResume:now-this.lastSpecialTime<4000,events,features:f};
   }
 }

@@ -1,27 +1,29 @@
+import {RunCalibration} from './motion/RunRhythm.js?v=run11';
 import {CameraManager,cameraErrorMessage} from './camera/CameraManager.js';
 import {PoseManager} from './pose/PoseManager.js';
 import {SettingsManager} from './settings/SettingsManager.js?v=prompt1';
 import {MirrorController} from './motion/MirrorController.js';
 import {CalibrationManager} from './motion/CalibrationManager.js';
-import {PlayerCoordinateMapper} from './motion/PlayerCoordinateMapper.js?v=run10';
+import {PlayerCoordinateMapper} from './motion/PlayerCoordinateMapper.js?v=run11';
 import {TrackingManager} from './motion/TrackingManager.js';
-import {MotionDetector} from './motion/MotionDetector.js?v=run10';
+import {MotionDetector} from './motion/MotionDetector.js?v=run11';
 import {MotionProgress} from './motion/MotionProgress.js';
-import {poseFeatures} from './motion/pose-features.js?v=run10';
-import {AudioManager} from './audio/AudioManager.js?v=run10';
-import {runSelfTest} from './dev/self-test.js?v=run10';
-import {bodyTrackable,drawTrackingOverlay} from './ui/TrackingOverlay.js?v=run10';
+import {poseFeatures} from './motion/pose-features.js?v=run11';
+import {AudioManager} from './audio/AudioManager.js?v=run11';
+import {runSelfTest} from './dev/self-test.js?v=run11';
+import {bodyTrackable,drawTrackingOverlay} from './ui/TrackingOverlay.js?v=run11';
 import {PromptSequence} from './game/PromptSequence.js?v=run2';
-import {PromptView} from './ui/PromptView.js?v=run10';
-import {ForestStage} from './game/ForestStage.js?v=run10';
-import {forestDebugText,forestReportText} from './ui/StageReport.js?v=run10';
-import {ForestView} from './ui/ForestView.js?v=run10';
+import {PromptView} from './ui/PromptView.js?v=run11';
+import {ForestStage} from './game/ForestStage.js?v=run11';
+import {forestDebugText,forestReportText} from './ui/StageReport.js?v=run11';
+import {ForestView} from './ui/ForestView.js?v=run11';
 const $=id=>document.getElementById(id);
 const settings=new SettingsManager(),mirror=new MirrorController(settings),calibration=new CalibrationManager();
 const tracking=new TrackingManager(),detector=new MotionDetector(settings.value),audio=new AudioManager(settings);
 const progress=new MotionProgress();
 const promptView=new PromptView($('promptStage'));
 const forestView=new ForestView($('forestScene'));
+const runCalibration=new RunCalibration();let runCalibrationRetries=0,runSettleSince=null;
 let forest=null,lastForestReport=null;
 let playMode='forest',sequence=null,lastMotionTime=null,lastPromptState=null;
 let phase='HOME',epoch=0,device={},aspect=4/3,baseline=null,mapper=null,landmarks=null,features=null;
@@ -29,7 +31,7 @@ let lastPoseTime=-Infinity,lastRenderTime=null,countdownAt=null,lastCount=null,t
 let elapsed=0,runTime=0,recent={},lastUI=0,renderFps=0,completions=0,feedbackTimer=null;
 const names={RUN:'RUN ✓',JUMP:'JUMP ✓',CROUCH:'CROUCH ✓',DODGE_LEFT:'LEFT ✓',DODGE_RIGHT:'RIGHT ✓'};
 const actionLabels={RUN:'原地跑',JUMP:'跳躍',CROUCH:'蹲下',DODGE_LEFT:'左閃',DODGE_RIGHT:'右閃'};
-const phaseLabels={HOME:'首頁',LOADING:'開啟鏡頭／載入模型',CALIBRATION:'站位與左右校正',COUNTDOWN:'出發倒數',PLAYING:'動作練習中',FINISHED:'練習完成',REST:'休息時間',ERROR:'等待重試'};
+const phaseLabels={HOME:'首頁',LOADING:'開啟鏡頭／載入模型',CALIBRATION:'站位與左右校正',RUN_CALIBRATION:'跑步校正',RUN_SETTLE:'站穩準備',COUNTDOWN:'出發倒數',PLAYING:'動作練習中',FINISHED:'練習完成',REST:'休息時間',ERROR:'等待重試'};
 const states={CENTER:'再試試五個招式！',RUNNING:'跑起來了！',JUMPING:'跳得好！',CROUCHING:'蹲下成功！',DODGE_LEFT:'左閃成功！ ←',DODGE_RIGHT:'右閃成功！ →',LOST_TRACKING:'回到框框裡～'};
 const camera=new CameraManager($('cameraVideo'),{onEnded:()=>fail('鏡頭已中斷，請確認連接後重新開始。')});
 const pose=new PoseManager({onResult:processPose,onError:()=>fail('動作小幫手暫時中斷，請重新開始。'),onStatus:text=>{if(phase==='LOADING')message(text,'第一次載入需要一點時間，請稍等。');}});
@@ -44,7 +46,7 @@ function release(){$('forestScene').hidden=true;$('guidedBtn').hidden=false;fore
   $('dojo').classList.remove('calibrating');motion={state:'CENTER',runState:'IDLE',runIntensity:0,events:[]};}
 function fail(text){release();phase='ERROR';$('phaseLabel').textContent='LET’S TRY AGAIN';message(text,'準備好後，再按一次開啟鏡頭。');$('startBtn').textContent='再試一次開啟鏡頭 →';}
 async function start(mode='forest'){playMode=mode;
-  release();$('guidedBtn').hidden=true;$('freeBtn').hidden=true;forest=playMode==='forest'?new ForestStage(settings.value):null;forestView.reset();lastForestReport=null;$('stageReport').hidden=true;sequence=new PromptSequence(settings.value);lastMotionTime=null;lastPromptState=null;const token=epoch;phase='LOADING';elapsed=0;runTime=0;recent={};progress.reset();
+  release();$('guidedBtn').hidden=true;$('freeBtn').hidden=true;forest=playMode==='forest'?new ForestStage(settings.value):null;forestView.reset();lastForestReport=null;$('stageReport').hidden=true;sequence=new PromptSequence(settings.value);lastMotionTime=null;lastPromptState=null;runCalibration.reset();runCalibrationRetries=0;detector.setRunProfile(null);const token=epoch;phase='LOADING';elapsed=0;runTime=0;recent={};progress.reset();
   $('summary').hidden=true;$('startBtn').hidden=true;$('stopBtn').hidden=false;$('phaseLabel').textContent='LET’S GET READY';message('正在開啟鏡頭…','瀏覽器會詢問相機權限。');
   await audio.unlock();if(token!==epoch)return;
   let loadingTimer;
@@ -69,17 +71,28 @@ function processPose(lm,now){
   lastPoseTime=performance.now();landmarks=lm;features=poseFeatures(lm,aspect,{allowLowerBodyMissing:phase==='PLAYING'});
   const result=tracking.update(bodyTrackable(lm,phase==='PLAYING')?features:null,now);trackingPaused=result.paused;
   $('trackingStatus').textContent=result.message;
-  if(trackingPaused){forest?.pause();lastMotionTime=null;if(sequence){sequence.runHeld=0;sequence.runGap=0;}motion=detector.lost();countdownAt=null;
+  if(trackingPaused){runCalibration.pause();runSettleSince=null;forest?.pause();lastMotionTime=null;if(sequence){sequence.runHeld=0;sequence.runGap=0;}motion=detector.lost();countdownAt=null;
     if(phase==='CALIBRATION')calibration.update(null,now);
-    if(phase==='PLAYING'||phase==='COUNTDOWN'||phase==='CALIBRATION')message('回到框框裡～','找到你的身體就會繼續，不會扣分。');return;}
+    if(['PLAYING','COUNTDOWN','CALIBRATION','RUN_CALIBRATION','RUN_SETTLE'].includes(phase))message('回到框框裡～','找到你的身體就會繼續，不會扣分。');return;}
   if(phase==='CALIBRATION'){
     const result=calibration.update(features,now);message(result.message,'左右都以你自己為準，跟著文字做就好。');
     if(result.phase==='READY'){
       baseline=result.baseline;mapper=new PlayerCoordinateMapper(result.direction);
       settings.update({calibration:{...result.direction,deviceId:device.deviceId??'',aspect}});
       applySettings();
-      phase='COUNTDOWN';countdownAt=performance.now();lastCount=null;
+      phase='RUN_CALIBRATION';runCalibration.reset();runCalibrationRetries=0;runSettleSince=null;message('跑給我看，5 秒就好！','左右腳輪流小步踏，自然擺手，不用抬很高。');
     }
+  }else if(phase==='RUN_CALIBRATION'){
+    const f=mapper.map(features,baseline),profile=runCalibration.observe(f,now);
+    message(`跑給我看！ ${Math.max(0,Math.ceil((5000-runCalibration.elapsed)/1000))}`,'左右腳輪流小步踏，自然擺手。');
+    if(profile){if(profile.valid){detector.setRunProfile(profile);phase='RUN_SETTLE';runSettleSince=null;}
+      else {runCalibrationRetries++;runCalibration.reset();message('左右腳輪流踏，再試一次！','不用跑快，讓我看看左右腳。');if(runCalibrationRetries>=2){detector.setRunProfile(null);phase='RUN_SETTLE';runSettleSince=null;}}}
+  }else if(phase==='RUN_SETTLE'){
+    const f=mapper.map(features,baseline);
+    const settled=Math.abs(f.playerX)<.065&&Math.abs(f.hipRise)<.05&&Math.abs(f.shoulderRise)<.065&&Math.abs(f.leftLift-f.rightLift)<.025;
+    if(!settled)runSettleSince=null;else runSettleSince??=now;
+    message('回中央站穩，準備出發！','雙腳放好，就會開始倒數。');
+    if(runSettleSince!==null&&now-runSettleSince>=500){phase='COUNTDOWN';countdownAt=performance.now();lastCount=null;}
   }else if(phase==='COUNTDOWN'){
     // Re-acquire a fresh standing average if the player moved before the countdown ends.
     const f=mapper.map(features,baseline);
@@ -117,8 +130,8 @@ function drawSkeleton(){
 }
 function frame(now){
   const rawDt=lastRenderTime===null?0:(now-lastRenderTime)/1000,dt=Math.min(.1,rawDt);if(rawDt>0)renderFps=renderFps*.9+.1/rawDt;lastRenderTime=now;
-  if(['PLAYING','COUNTDOWN','CALIBRATION'].includes(phase)&&now-lastPoseTime>450){
-    if(!trackingPaused){trackingPaused=true;forest?.pause();lastMotionTime=null;if(sequence)sequence.runHeld=0;motion=detector.lost();tracking.reset();countdownAt=null;if(phase==='CALIBRATION')calibration.update(null,now);}
+  if(['PLAYING','COUNTDOWN','CALIBRATION','RUN_CALIBRATION','RUN_SETTLE'].includes(phase)&&now-lastPoseTime>450){
+    if(!trackingPaused){trackingPaused=true;forest?.pause();lastMotionTime=null;if(sequence)sequence.runHeld=0;motion=detector.lost();runCalibration.pause();runSettleSince=null;tracking.reset();countdownAt=null;if(phase==='CALIBRATION')calibration.update(null,now);}
     $('trackingStatus').textContent='回到框框裡～';message('回到框框裡～','找到你的身體就會繼續，不會扣分。');
   }
   if(phase==='COUNTDOWN'&&!trackingPaused){countdownAt??=now;const n=3-Math.floor((now-countdownAt)/1000);
@@ -127,7 +140,7 @@ function frame(now){
   if(phase==='PLAYING'&&!trackingPaused&&!document.hidden&&!$('settingsDialog').open){if(playMode==='forest'){forest.pause(false);forest.advance(dt*1000);elapsed=forest.time/1000;forestFeedback();}else elapsed+=dt;if(motion.runState==='RUNNING')runTime+=dt;if(playMode==='guided'){sequence.advance(dt*1000);const snap=sequence.snapshot();if(snap.promptState==='ACTIVE'&&lastPromptState!=='ACTIVE')audio.play('count');lastPromptState=snap.promptState;promptView.update(snap,false);if(snap.promptState==='FINISHED')finish();}else if(playMode==='forest'){promptView.update(forest.snapshot(),false);const snap=forest.snapshot(),key=`${snap.event?.id}:${snap.promptState}`;if(snap.promptState==='ACTIVE'&&key!==lastPromptState)audio.play('count');lastPromptState=key;if(forest.finished)finish();}else if(elapsed>=settings.value.duration)finish();}
   if(phase==='PLAYING'&&playMode==='guided')promptView.update(sequence.snapshot(),trackingPaused);
   if(phase==='PLAYING'&&playMode==='forest'){forest.pause(trackingPaused||document.hidden||$('settingsDialog').open);const snap=forest.snapshot();promptView.update(snap,trackingPaused||document.hidden||$('settingsDialog').open);forestView.update(snap,now,pose.fps);}
-  if(now-lastUI>100){if(phase==='PLAYING'&&playMode==='forest')forest.notePerformance(pose.fps,renderFps);lastUI=now;document.body.dataset.phase=phase;$('sessionClock').textContent=phase==='PLAYING'?`${Math.floor(elapsed/60)}:${String(Math.floor(elapsed%60)).padStart(2,'0')} / ${playMode==='forest'?`${Math.floor(forest.duration/60000)}:${String(Math.round(forest.duration/1000)%60).padStart(2,'0')}`:playMode==='guided'?'1:04':settings.value.duration/60+':00'}`:phase==='LOADING'?'正在準備…':phase==='CALIBRATION'?'左右校正':phase==='COUNTDOWN'?'準備出發':phase==='FINISHED'||phase==='REST'?'練習完成':'準備出發';
+  if(now-lastUI>100){if(phase==='PLAYING'&&playMode==='forest')forest.notePerformance(pose.fps,renderFps);lastUI=now;document.body.dataset.phase=phase;$('sessionClock').textContent=phase==='PLAYING'?`${Math.floor(elapsed/60)}:${String(Math.floor(elapsed%60)).padStart(2,'0')} / ${playMode==='forest'?`${Math.floor(forest.duration/60000)}:${String(Math.round(forest.duration/1000)%60).padStart(2,'0')}`:playMode==='guided'?'1:04':settings.value.duration/60+':00'}`:phase==='LOADING'?'正在準備…':phase==='CALIBRATION'?'左右校正':phase==='RUN_CALIBRATION'?'跑步校正':phase==='RUN_SETTLE'?'站穩準備':phase==='COUNTDOWN'?'準備出發':phase==='FINISHED'||phase==='REST'?'練習完成':'準備出發';
     for(const action of Object.keys(names)){const active=phase==='PLAYING'&&!trackingPaused&&((recent[action]??0)>now||(action==='RUN'&&motion.state==='RUNNING')||(action==='CROUCH'&&motion.state==='CROUCHING')||motion.state===action);
       const card=document.querySelector(`[data-action="${action}"]`),count=progress.counts[action];
       card.classList.toggle('active',active);card.classList.toggle('completed',count>0);
@@ -145,7 +158,7 @@ function frame(now){
       `Pose confidence: ${v(features?.confidence)}   Hip X: ${v(features?.hipX)}   Hip Y: ${v(features?.hipY)}`,
       `baseline X: ${v(baseline?.baselineHipX)}   baseline Y: ${v(baseline?.baselineHipY)}   average frames: ${baseline?.frames??0}`,
       `motionState: ${motion.state}   runState: ${motion.runState}   runIntensity: ${v(motion.runIntensity)}`,
-      `Knees visible: ${features?.lowerBodyVisible??'—'}   partial-body tracking: ${phase==='PLAYING'}   Run center: ${Number.isFinite(motion.runCenter)?motion.runCenter.toFixed(4):"—"} · Run steps: ${motion.stepCount??0} · Arm steps: ${motion.armSteps??0} · Run source: ${motion.runSource??'NONE'}   knee difference: ${v(motion.features?(motion.features.leftLift-motion.features.rightLift):null)}   run threshold: ${v(motion.runThreshold)}`,
+      `Knees visible: ${features?.lowerBodyVisible??'—'}   partial-body tracking: ${phase==='PLAYING'}   Run center: ${Number.isFinite(motion.runCenter)?motion.runCenter.toFixed(4):"—"} · Run steps: ${motion.stepCount??0} · Arm steps: ${motion.armSteps??0} · Run source: ${motion.runSource??'NONE'} · Rhythm: ${motion.runDiagnostic?.reason??'—'} · Profile: ${detector.runProfile?.amplitudeThreshold?.toFixed(4)??'預設'}   knee difference: ${v(motion.features?(motion.features.leftLift-motion.features.rightLift):null)}   run threshold: ${v(motion.runThreshold)}`,
       `mirrorMode: ${settings.value.mirrorMode}   displayMirrored: ${mirror.displayMirrored}   mirrorDirection: ${mirror.mirrorDirection??'uncalibrated'}`,
       `Player right raw sign: ${mapper?.calibration.playerRightSign??'—'}   Player X: ${v(motion.features?.playerX)}`,
       `trackingState: ${trackingPaused?'LOST_TRACKING':'TRACKING'}   phase: ${phase}`,
@@ -180,7 +193,7 @@ $('settingsBtn').addEventListener('click',()=>{for(const key of ['promptSize','m
 $('saveSettings').addEventListener('click',()=>{const patch={};for(const key of ['promptSize','mirrorMode','difficulty','duration','gameHomeUrl'])patch[key]=$(key).value;
   for(const key of ['jumpEnabled','sound','rememberCalibration'])patch[key]=$(key).checked;settings.update(patch);applySettings();});
 $('clearCalibration').addEventListener('click',()=>{settings.update({calibration:null});if(camera.active)recalibrate();$('settingsWarning').textContent='左右校正已清除，下次開始會重新確認。';});
-document.addEventListener('visibilitychange',()=>{lastRenderTime=null;if(document.hidden){forest?.pause();pose.stop();trackingPaused=true;tracking.reset();motion=detector.lost();}
-  else if(camera.active&&['CALIBRATION','COUNTDOWN','PLAYING'].includes(phase)){lastPoseTime=performance.now();countdownAt=null;pose.start($('cameraVideo'));}});
+document.addEventListener('visibilitychange',()=>{lastRenderTime=null;if(document.hidden){runCalibration.pause();runSettleSince=null;forest?.pause();pose.stop();trackingPaused=true;tracking.reset();motion=detector.lost();}
+  else if(camera.active&&['CALIBRATION','COUNTDOWN','PLAYING','RUN_CALIBRATION','RUN_SETTLE'].includes(phase)){lastPoseTime=performance.now();countdownAt=null;pose.start($('cameraVideo'));}});
 globalThis.addEventListener('pagehide',()=>{release();audio.close();});
 applySettings();requestAnimationFrame(frame);

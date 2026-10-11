@@ -58,3 +58,10 @@ SYNC-8：真人五種全通過後不再改動辨識。每招從12秒縮短至6�
 - During explicit RUN slots, lateral drift does not become DODGE. Other action slots retain existing left/right logic. Visible torso outside the inset guide can keep tracking; missing torso still pauses the game.
 - Camera center cross uses fitted video geometry, follows viewport sizing, and remains visible with skeleton disabled.
 - Developer mode reports arm steps and RUN signal source. Public synthetic preview includes small-step arm-assist replay. Human success rate and Webcam FPS require physical validation.
+
+## RUN-11
+- After existing direction/standing calibration, sample five valid seconds of natural running, then wait for a neutral stance before the existing countdown. Tracking gaps do not count toward sample duration.
+- Reject static/low-signal samples; retry once, then use the existing detector as a fallback. Calibration stores numeric features in this session only, never camera frames.
+- Personal RUN uses a 1.8s rolling history, robust 10th/90th percentile amplitude, body-scaled personal threshold, confirmed alternating crossings and fresh-step timeout. Existing leg/arm detection remains available; other action priority and level timing are unchanged.
+- Run diagnostics compare original and personal rhythm on the same observations; report detected seconds, held credit, sources, interruption reasons and timeline pause count. Pauses can include tracking, visibility or settings.
+- Public preview provides calibrated small-step synthetic replay. Physical Webcam success rates and latency still require user testing.

@@ -67,3 +67,21 @@ body[data-mode=forest] .start-area{max-width:64%}
 
 /* SYNC-9: prompt and camera match the requested side-by-side layout. */
 @media(min-width:681px){body[data-mode=forest] .camera-box{top:3%;bottom:10%;right:1%;width:30%;height:auto;max-width:none;border-radius:28px}body[data-mode=forest] .camera-caption{top:4%;right:2%;max-width:28%}body[data-mode=forest] .prompt-stage{left:42%;right:31.5%;transform:none;width:auto;top:23%;bottom:26%;border-radius:20px}body[data-mode=forest] .prompt-symbol{width:clamp(150px,27vmin,340px)!important;height:clamp(150px,27vmin,340px)!important;font-size:clamp(150px,27vmin,340px)!important}body[data-mode=forest] .prompt-stage{overflow:visible}body[data-mode=forest] .prompt-phase,body[data-mode=forest] .prompt-label{font-size:clamp(24px,2.4vw,40px)}}
+
+/* RUN-13: right column contains a cue above a native-aspect video, no cropping. */
+@media(min-width:681px){
+ body[data-mode=forest] .prompt-stage{left:auto;right:1%;top:3%;bottom:auto;width:34%;height:44%;transform:none;padding:6px;overflow:hidden}
+ body[data-mode=forest] .camera-box{left:auto;right:1%;top:auto;bottom:10%;width:min(34%,calc((100dvh - 66px)*.40*var(--camera-aspect,1.333333)));height:auto;aspect-ratio:var(--camera-aspect,1.333333);max-width:none;border-width:3px;border-radius:18px}
+ body[data-mode=forest] .camera-caption{top:auto;bottom:4%;right:1%;max-width:34%;font-size:clamp(14px,1.2vw,21px)}
+ body[data-mode=forest] .prompt-symbol{width:clamp(100px,19vmin,230px)!important;height:clamp(100px,19vmin,230px)!important;font-size:clamp(100px,19vmin,230px)!important;flex-shrink:1;min-height:0}
+ body[data-mode=forest][data-prompt-size=LARGE] .prompt-symbol{width:clamp(120px,23vmin,280px)!important;height:clamp(120px,23vmin,280px)!important;font-size:clamp(120px,23vmin,280px)!important}
+ body[data-mode=forest][data-prompt-size=EXTRA_LARGE] .prompt-symbol{width:clamp(135px,26vmin,315px)!important;height:clamp(135px,26vmin,315px)!important;font-size:clamp(135px,26vmin,315px)!important}
+ body[data-mode=forest] .prompt-phase,body[data-mode=forest] .prompt-label{font-size:clamp(22px,2vw,34px)}
+ body[data-mode=forest] .next-row{font-size:clamp(16px,1.4vw,24px)}
+ body[data-mode=forest] .run-progress{font-size:clamp(16px,1.4vw,24px);margin:2px 0}
+ body[data-mode=forest] .run-progress progress{width:clamp(70px,10vw,170px)}
+ body[data-mode=forest] .forest-hud{right:37%}
+}
+@media(max-width:680px){
+ body[data-mode=forest] .camera-box{height:auto;width:36%;aspect-ratio:var(--camera-aspect,1.333333)}
+}

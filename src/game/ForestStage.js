@@ -4,7 +4,7 @@ const clamp=(v,a,b)=>Math.max(a,Math.min(b,v));
 export const SEGMENTS=[{id:'A',label:'起跑暖身',start:0,end:12000},{id:'B',label:'基礎障礙',start:12000,end:44000},{id:'C',label:'連續組合',start:44000,end:84000},{id:'D',label:'最後衝刺',start:84000,end:120000}];
 const OBSTACLES={JUMP:'CRATE',CROUCH:'BRANCH',DODGE_LEFT:'RIGHT_BLOCK',DODGE_RIGHT:'LEFT_BLOCK'};
 export function buildForestTimeline({jumpEnabled=true,difficulty='EASY'}={}){
- const timing=({EASY:{preview:550,window:3000},NORMAL:{preview:450,window:2800},HARD:{preview:375,window:2600}})[difficulty]??{preview:550,window:3000};
+ const timing=({EASY:{preview:100,window:3000},NORMAL:{preview:100,window:2800},HARD:{preview:100,window:2600}})[difficulty]??{preview:100,window:3000};
  const order=['RUN','JUMP','DODGE_LEFT','CROUCH','DODGE_RIGHT','RUN','DODGE_LEFT','JUMP','DODGE_RIGHT','CROUCH','JUMP','DODGE_LEFT','RUN','CROUCH','DODGE_RIGHT','JUMP','DODGE_LEFT','CROUCH','DODGE_RIGHT','RUN'];
  return order.map((original,id)=>{const type=original==='JUMP'&&!jumpEnabled?'CROUCH':original,start=id*6000,activeStart=start+(type==='RUN'?(id===19?1400:1450):timing.preview),nominalActiveEnd=type==='RUN'?activeStart+2800:activeStart+timing.window,activeEnd=type==='RUN'?nominalActiveEnd+400:nominalActiveEnd;
  return {id,type,obstacle:OBSTACLES[type]??null,previewStart:start,previewTime:start,activeStart,activeTime:activeStart,nominalActiveEnd,bufferWindow:type==='RUN'?400:0,activeEnd,activeWindow:activeEnd-activeStart,impactTime:type==='RUN'?activeEnd:activeEnd+200,slotEnd:start+6000,recoveryEnd:Math.max(start+6000,activeEnd),resolved:false,result:null,successTime:null,firstMotionTime:null,impactResolved:false,attempts:[]};});

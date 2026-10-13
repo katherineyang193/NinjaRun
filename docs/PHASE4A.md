@@ -25,3 +25,6 @@ Debug：chaseDistance／chaseState／catchCount／lastChaseDelta／chaseDanger�
 
 ## 公開合成驗證紀錄
 GitHub Pages已實際開啟CHASE-19：登場、Catch、全MISS120秒結尾、右上圖示及右下鏡頭位置預覽皆可載入，Console未見致命錯誤。全成功Easy／Normal各20/20（五種動作各4/4）、登場1次、Catch0次；70%合成各14/20、Catch0次；全MISS Easy Catch1次、Normal2次。合成預覽代表樣本Canvas約0.1～0.6ms，Scene约25～30FPS，受分頁節流／跳時操作影響，不能當真人FPS。真人Easy／Normal、相機與校正仍待實體驗收。
+
+## CHASE-20 提示節奏
+跳躍、蹲下、左右閃的正式灰色預備縮至100ms，RUN仍1450ms（最後1400ms），有效判定時間及RUN 400ms補判不變。前一招恢復期不再把下一招放大為灰色；仍保留小型動作隊列。單一ForestStage時鐘仍同步障礙、亮燈、語音與判定；120秒及40/40/20配置不變。左右閃仍須回到中央才啟動判定。所有體感門檻未改。

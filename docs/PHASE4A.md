@@ -22,3 +22,6 @@ Debug：chaseDistance／chaseState／catchCount／lastChaseDelta／chaseDanger�
 
 ## 真人驗收
 用Chrome／Edge開公開版本。Easy與Normal各玩一局，檢查CameraON、RUN校正、大箭頭、方向、24秒登場、距離變化、追逐自然度、結尾；結束打開Developer Mode複製報告。Catch可先看合成預覽，避免刻意站著造成真人運動不足。核對正常60～70%成功時Catch是否過頻，再調追逐數值，禁止動作門檻修改。
+
+## 公開合成驗證紀錄
+GitHub Pages已實際開啟CHASE-19：登場、Catch、全MISS120秒結尾、右上圖示及右下鏡頭位置預覽皆可載入，Console未見致命錯誤。全成功Easy／Normal各20/20（五種動作各4/4）、登場1次、Catch0次；70%合成各14/20、Catch0次；全MISS Easy Catch1次、Normal2次。合成預覽代表樣本Canvas約0.1～0.6ms，Scene约25～30FPS，受分頁節流／跳時操作影響，不能當真人FPS。真人Easy／Normal、相機與校正仍待實體驗收。

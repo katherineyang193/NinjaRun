@@ -1,5 +1,5 @@
 export const DEFAULTS=Object.freeze({promptSize:'LARGE',mirrorMode:'auto',difficulty:'EASY',sound:true,voiceHints:true,music:false,
-  jumpEnabled:true,duration:180,rememberCalibration:true,calibration:null,gameHomeUrl:'https://katherineyang193.github.io/GameHome/'});
+  chaseEnabled:true,jumpEnabled:true,duration:180,rememberCalibration:true,calibration:null,gameHomeUrl:'https://katherineyang193.github.io/GameHome/'});
 export class SettingsManager {
   constructor(storage) {this.storage=storage;this.warning='';this.value={...DEFAULTS};
     try{this.storage??=globalThis.localStorage;const saved=JSON.parse(this.storage.getItem('ninjaRun.settings.v1')??'{}');this.value=this.sanitize({...DEFAULTS,...saved});}
@@ -7,7 +7,7 @@ export class SettingsManager {
   }
   sanitize(value){
     const out={...DEFAULTS};
-    for(const key of ['voiceHints','sound','music','jumpEnabled','rememberCalibration'])if(typeof value[key]==='boolean')out[key]=value[key];
+    for(const key of ['chaseEnabled','voiceHints','sound','music','jumpEnabled','rememberCalibration'])if(typeof value[key]==='boolean')out[key]=value[key];
     if(['auto','mirror','normal'].includes(value.mirrorMode))out.mirrorMode=value.mirrorMode;
     if(['EASY','NORMAL','HARD'].includes(value.difficulty))out.difficulty=value.difficulty;
     if([60,120,180].includes(Number(value.duration)))out.duration=Number(value.duration);

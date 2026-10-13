@@ -1,11 +1,11 @@
-import {RunCalibration} from '../motion/RunRhythm.js?v=run18';
-import {drawTrackingOverlay} from '../ui/TrackingOverlay.js?v=run18';
-import {ForestStage} from '../game/ForestStage.js?v=run18';
-import {ForestView} from '../ui/ForestView.js?v=run18';
-import {PromptView} from '../ui/PromptView.js?v=run18';
-import {MotionDetector} from '../motion/MotionDetector.js?v=run18';
+import {RunCalibration} from '../motion/RunRhythm.js?v=chase19';
+import {drawTrackingOverlay} from '../ui/TrackingOverlay.js?v=chase19';
+import {ForestStage} from '../game/ForestStage.js?v=chase19';
+import {ForestView} from '../ui/ForestView.js?v=chase19';
+import {PromptView} from '../ui/PromptView.js?v=chase19';
+import {MotionDetector} from '../motion/MotionDetector.js?v=chase19';
 import {neutral} from './self-test.js?v=body3';
-import {forestReportText} from '../ui/StageReport.js?v=run18';
+import {forestReportText} from '../ui/StageReport.js?v=chase19';
 const $=id=>document.getElementById(id),view=new ForestView($('forestScene')),prompt=new PromptView($('promptStage'));
 let armMode=false,personalMode=false;
 let stage=new ForestStage(),detector=new MotionDetector(),last=null,paused=false,miss=false,poseTime=0;
@@ -27,3 +27,7 @@ $('jumpSuccess').onclick=()=>{reset();for(let i=0;i<190;i++)step();paused=true;s
 $('armTest').onclick=()=>reset(false,true);
 
 $('rhythmTest').onclick=()=>reset(false,false,true);
+
+$('chaseEntry').onclick=()=>{reset();for(let i=0;i<625;i++)step();paused=true;stage.pause();$('pause').textContent='繼續';};
+$('catchPreview').onclick=()=>{reset(true);while(stage.chase.catchCount===0&&!stage.finished)step();paused=true;stage.pause();$('pause').textContent='繼續';};
+$('chaseOff').onclick=()=>{reset();stage=new ForestStage({chaseEnabled:false});};

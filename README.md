@@ -1,41 +1,39 @@
 # Ninja Run v0.1 · 小忍者衝衝衝
 
-第一階段：Camera / Pose / 左右校正 / 五種動作 / Motion Debug Playground。
+目前版本 CHASE-19：Phase 4A 森林追逐。公開遊戲：https://katherineyang193.github.io/NinjaRun/?v=chase19
 
-公開遊戲：https://katherineyang193.github.io/NinjaRun/
+Windows 11 + Chrome / Edge + Webcam；GitHub Pages 純靜態網站。一般玩家不需安裝軟體。原創角色與森林怪獸，沒有 Boss、帳號或排行榜。
 
-使用 Windows 11 的 Chrome 或 Edge，允許相機，退後到頭、肩、髖與膝蓋入鏡。依序舉起自己的左手、放下雙手、舉起右手，站穩後倒數開始。箭頭代表玩家自己的左右。家長可關閉跳躍；鏡頭畫面不會儲存、錄影或上傳。
+## 玩法
 
-## 開發與測試
+森林關使用120秒遊戲時鐘、20個事件：左右閃48秒／跳蹲48秒／RUN24秒（40%／40%／20%，包含預告、判定、恢復）。相機站位檢查、玩家自己的左右校正、24幀站位平均、5秒個人RUN校正後出發。五種動作為 RUN、JUMP、CROUCH、DODGE_LEFT、DODGE_RIGHT；大型灰色預告在ACTIVE亮起，本機中文TTS播報。RUN仍需累積1秒有效跑動，主判讀2.8秒加0.4秒補判；不是提高動作門檻。
 
-純靜態 HTML / CSS / ES Modules；沒有 runtime npm 依賴或 build step。開發者用 Node.js 24：
+Score／Combo／活力值／星星沿用現有關卡。第24秒原創圓滾滾怪獸登場，正確跑動拉開距離，成功障礙有小幅獎勵，MISS讓怪獸靠近。被追上有1秒搞笑失衡與散星，最多扣5顆星、活力值5點、Combo歸零，距離恢復50，遊戲繼續。結尾怪獸停下，顯示「逃出來了！」。家長設定可關閉追逐（下局生效）、跳躍、動作音效與語音。64秒提示挑戰及自由練習保留。
 
-```sh
+鏡頭保留完整有效影像、不裁掉膝蓋；人體節點及中央十字預設顯示。正式森林關提示在右上、鏡頭在右下且使用原生比例。開發模式可查看動作原因、Pose／Render FPS、追逐距離、Catch及事件紀錄。所有紀錄只在本次頁面記憶體，不錄影、不保存或上傳影像／姿勢。
+
+## 開發
+
+純HTML／CSS／ES Modules，無runtime npm依賴或build step。Node.js24：
+
+~~~sh
 npm test
 npm start
-```
+~~~
 
-本機測試網址 `http://localhost:4173`。請勿直接雙擊 HTML：ES Modules 與相機需 HTTP localhost 或 HTTPS。一般玩家只需公開網址，不需安裝 Node 或其他軟體。
+本機 http://localhost:4173，禁止直接雙擊HTML。Webcam使用localhost或HTTPS。沿用既有CuteDart Camera生命週期抽取模組；沒有取得CuteDash原始碼，不能宣稱直接沿用它的Pose Engine。
 
-練習場採滿版視訊舞台，動作提示與成果直接疊在視訊內；保留整個鏡頭影像，避免裁掉膝蓋。人体節點預設開啟。寬站位框在完整人體辨識有效時亮黃色，越界／未辨識轉藍色；節點同樣有黃／藍回饋，並搭配文字說明。
+- src/camera、src/pose：CameraManager、MediaPipe Lite Worker優先與相容模式。
+- src/motion：校正、座標映射、MotionDetector、RunRhythm；Phase4A沒有改動。
+- src/game/ForestStage.js：同一遊戲時鐘控制提示、判定、障礙、分數與追逐。
+- src/game/ChaseState.js：只讀既有動作結果，沒有新的體感引擎。
+- src/ui/ForestView.js：原有Canvas30FPS森林／怪獸，與Pose loop分離。
+- src/audio、src/settings：Web Audio、本機中文TTS及localStorage偏好。
+- tests：不需Webcam的判定與追逐回歸測試。
+- [Phase3現況](docs/PHASE3.md)、[Phase4A規則與驗收](docs/PHASE4A.md)。
 
-「開發模式」提供 Pose / Render FPS、信心值、原始 Hip、站位平均、玩家座標、狀態機、RUN 強度、踏步數與門檻，以及五種動作合成測試；合成測試不會增加玩家計數。原地跑支援小步交替，不需高抬膝。
+## 部署與驗收
 
-## 原始碼
+既有Repository katherineyang193/NinjaRun、main分支、GitHub Pages根目錄發布，保留.nojekyll與既有Motion checks。先npm test，再commit／push；不得force push。模型使用固定版本CDN，模型快取不進Git。
 
-- `src/camera/CameraManager.js`：從既有 CuteDart 的 requestCamera / stopCamera 抽出共用生命週期。
-- `src/pose/`：MediaPipe Pose Lite、Worker 優先、GPU / CPU 與主執行緒相容模式。
-- `src/motion/`：左右映射、兩手校正、24 幀站位平均、追蹤恢復與獨立動作狀態機。
-- `src/audio/`、`src/settings/`：Web Audio 回饋與 localStorage。
-- `src/ui/`、`src/app.js`：練習場與流程。
-- `tests/`：不需 Webcam 的判定、校正、隱私與相機生命週期測試。
-- [交付與驗收紀錄](./docs/DELIVERY.md)：架構、沿用來源、判定規則、測試結果、限制。
-- [真人驗收步驟](./docs/ACCEPTANCE.md)：不同相機的公開版驗收。
-
-## 部署
-
-使用既有 `katherineyang193/NinjaRun` Repository 的 `main` 分支，GitHub Pages 從根目錄發佈；`.nojekyll` 保留靜態 ES Modules。GitHub Actions 跑動作測試。每次修改需先 `npm test`，再 commit / push。模型由固定版本 jsDelivr / Google 官方網址下載，不將模型快取提交到 Git。
-
-Camera 與姿勢推論只在本機執行。網路用途是載入靜態檔、MediaPipe WASM 與模型。localStorage 只含家長設定、相機識別碼與方向偏好，不保存任何影像或每幀姿勢。
-
-本階段不含森林關卡、Boss、排行榜或帳號；難度與音樂選項預留給後续關卡。未取得 CuteDash 原始碼，因此無法宣稱已直接沿用 CuteDash 的 Pose Engine。
+合成預覽：src/dev/forest-preview.html，清楚標示CAMERA OFF，支援追逐登場、Catch、全MISS與追逐OFF。自動測試不代表真人成功率；Easy與Normal的真人自然度、Camera／RUN校正、Pose FPS仍需使用者站在全身入鏡距離驗收。Phase4A交付後停止，不進入Boss。

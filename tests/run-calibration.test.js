@@ -33,7 +33,7 @@ test('calibrated small steps complete the four RUN windows in the real forest ti
  const d=new MotionDetector(),s=new ForestStage();d.setRunProfile(calibrate());
  for(let i=1;i<=3000;i++){s.advance(40);const e=s.currentEvent(),t=i*40;let f=neutral();if(e?.type==='RUN')f=feet(t);s.observe(d.update(f,t,true,{runRequested:e?.type==='RUN'}),40);}
  const rows=s.events.filter(e=>e.type==='RUN');assert.ok(rows.every(e=>e.result==='SUCCESS'));
- assert.ok(rows.every(e=>e.runDiagnostics.rhythmMs>0));assert.ok(rows.every(e=>e.runDiagnostics.legacyMs===0));assert.equal(s.duration,120000);
+ assert.ok(rows.every(e=>e.runDiagnostics.rhythmMs>0));assert.ok(rows.every(e=>e.runDiagnostics.legacyMs===0));assert.ok(s.duration<=120000);assert.equal(s.time,s.duration);
 });
 
 test('large calibration steps do not block slower small steps during play',()=>{const p=calibrate(.07),r=new RunRhythm();let hit=false;for(let t=0;t<6000;t+=40){const side=Math.floor(t/520)%2;r.update({...neutral(),leftLift:side?.008:0,rightLift:side?0:.008},t,p).running&&(hit=true);}assert.equal(hit,true);});

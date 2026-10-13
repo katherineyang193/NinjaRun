@@ -8,8 +8,8 @@ export class PromptView {
     this.runProgress=root.querySelector('.run-progress');
   }
   update(snapshot,paused=false){let {promptState,currentPrompt,nextPrompt,combo}=snapshot;
-    // Recovery retains only the small queue, never a prolonged gray main cue.
-    if(snapshot.forestPrompt&&promptState==='RECOVERY'){promptState='CRUISING';currentPrompt=null;}
+    // Keep the completed action visible after a miss until the next preview.
+    if(snapshot.forestPrompt&&promptState==='RECOVERY'){promptState='MISS';currentPrompt=snapshot.slotAction;}
     const directCue=snapshot.forestPrompt&&promptState==='PREVIEW'&&currentPrompt!=='RUN';
     this.runProgress.hidden=snapshot.showRunProgress===false||paused||currentPrompt!=='RUN'||promptState!=='ACTIVE';
     this.runProgress.querySelector('progress').value=snapshot.runProgress??0;

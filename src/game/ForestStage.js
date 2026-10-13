@@ -21,10 +21,19 @@ export class ForestStage {
  currentEvent(){return this.events.find(e=>this.time>=e.previewStart&&this.time<e.recoveryEnd)??null;}
  setJumpEnabled(enabled){if(!enabled)for(const e of this.events)if(!e.resolved&&e.type==='JUMP'){e.type='CROUCH';e.obstacle='BRANCH';}}
  pause(value=true){if(value&&!this.paused){const e=this.currentEvent();if(e?.type==='RUN'&&e.runDiagnostics)e.runDiagnostics.trackingPauses++;}this.paused=value;if(value){this.lastRunSampleTime=null;this.runGap=0;this.motion={state:'LOST_TRACKING',runState:'IDLE',runIntensity:0,events:[]};}}
- resolve(e,result){if(e.resolved)return;e.resolved=true;e.result=result;e.successTime=result==='SUCCESS'?this.time:null;if(result==='SUCCESS'&&e.obstacle)e.visualImpactTime=this.time+600;
+ resolve(e,result){if(e.resolved)return;e.resolved=true;e.result=result;e.successTime=result==='SUCCESS'?this.time:null;if(result==='SUCCESS'&&e.obstacle)e.visualImpactTime=this.time+600;if(e.obstacle)this.closeResolvedSlot(e,result);
   if(result==='SUCCESS'){this.combo++;this.bestCombo=Math.max(this.bestCombo,this.combo);this.score+=100+Math.min(30,(this.combo-1)*5);this.energy=clamp(this.energy+8+Math.min(3,this.combo*.3),0,100);this.stars+=e.type==='RUN'?1:3;}
   else {this.combo=0;this.energy=clamp(this.energy-3,0,100);}
   this.chase.outcome(e.type,result,this.time);this.chaseNotices();this.lastFeedback={time:this.time,result,type:e.type,id:e.id};this.notices.push({...this.lastFeedback});
+ }
+ // Successful non-RUN actions hand off after the actual animation, never
+ // padding the completed move back to a six-second slot.
+ closeResolvedSlot(e,result){
+  const end=Math.min(e.slotEnd,result==='SUCCESS'?this.time+900:e.impactTime+500),saved=e.slotEnd-end;if(saved<=0||end<=this.time)return;
+  e.slotEnd=end;e.recoveryEnd=end;
+  for(const later of this.events)if(later.id>e.id)for(const key of ['previewStart','previewTime','activeStart','activeTime','nominalActiveEnd','activeEnd','impactTime','slotEnd','recoveryEnd'])later[key]-=saved;
+  this.duration=this.events.at(-1).slotEnd;
+  for(let i=0;i<this.segments.length;i++){this.segments[i].start=i===0?0:this.events[[0,2,7,14][i]].previewStart;this.segments[i].end=i===3?this.duration:this.events[[2,7,14][i]].previewStart;}
  }
  chaseNotices(){for(const notice of this.chase.notices.splice(0)){if(notice.result==='CATCH'){this.stars=Math.max(0,this.stars-5);this.energy=clamp(this.energy-5,0,100);this.combo=0;}this.notices.push(notice);}}
  advance(ms){if(this.paused||this.finished)return;let next=Math.min(this.duration,this.time+Math.max(0,ms));
@@ -59,7 +68,7 @@ export class ForestStage {
  }
  snapshot(){const e=this.currentEvent(),segment=this.segments.find(s=>this.time>=s.start&&this.time<s.end)??this.segments.at(-1);
   let state='RECOVERY',prompt=null;const waiting=!!e&&e.type.startsWith('DODGE')&&!this.centerReady&&this.time>=e.activeStart-.01&&this.time<e.activeStart;
-  if(e){if(e.result==='SUCCESS'&&this.time-e.successTime<700){state='SUCCESS';prompt=e.type;}
+  if(e){if(e.result==='SUCCESS'&&this.time-e.successTime<900){state='SUCCESS';prompt=e.type;}
    else if(e.type==='RUN'&&e.result==='SUCCESS'){state='SUCCESS';prompt='RUN';}
    else if(this.time<e.activeStart){state='PREVIEW';prompt=e.type;}
    else if(!e.resolved){state='ACTIVE';prompt=e.type;}
@@ -74,6 +83,6 @@ export class ForestStage {
  drainNotices(){return this.notices.splice(0);}
  notePerformance(pose,render){if(this.paused||this.finished)return;if(pose>0)this.performance.pose.push(pose);if(render>0)this.performance.render.push(render);}
  report(){const success=this.events.filter(e=>e.result==='SUCCESS');const reactions=success.map(e=>e.successTime-e.activeStart);const average=a=>a.length?a.reduce((x,y)=>x+y,0)/a.length:null;
-  return {chase:this.chase.report(),allocatedSeconds:{RUN:24,DODGE:48,JUMP_CROUCH:48},totalEvents:this.events.length,success:success.length,miss:this.events.filter(e=>e.result==='MISS').length,actions:ACTIONS.map(action=>{const rows=this.events.filter(e=>e.type===action),hits=rows.filter(e=>e.result==='SUCCESS');return {action,attempts:rows.length,successes:hits.length,rate:rows.length?Math.round(hits.length/rows.length*100):null};}),averageReactionMs:average(reactions),earliestActionTime:this.log.length?Math.min(...this.log.map(a=>a.time)):null,latestSuccessTime:success.length?Math.max(...success.map(e=>e.successTime)):null,score:Math.floor(this.score),energy:Math.round(this.energy),stars:this.stars,bestCombo:this.bestCombo,runSeconds:this.runTime,durationSeconds:this.time/1000,poseFpsAverage:average(this.performance.pose),renderFpsAverage:average(this.performance.render),poseFpsMinimum:this.performance.pose.length?Math.min(...this.performance.pose):null,events:this.events.map(e=>({...e,attempts:[...e.attempts]})),log:[...this.log]};
+  return {chase:this.chase.report(),allocatedSeconds:this.events.reduce((sum,e)=>{sum[e.type==='RUN'?'RUN':e.type.startsWith('DODGE')?'DODGE':'JUMP_CROUCH']+=(e.slotEnd-e.previewStart)/1000;return sum;},{RUN:0,DODGE:0,JUMP_CROUCH:0}),totalEvents:this.events.length,success:success.length,miss:this.events.filter(e=>e.result==='MISS').length,actions:ACTIONS.map(action=>{const rows=this.events.filter(e=>e.type===action),hits=rows.filter(e=>e.result==='SUCCESS');return {action,attempts:rows.length,successes:hits.length,rate:rows.length?Math.round(hits.length/rows.length*100):null};}),averageReactionMs:average(reactions),earliestActionTime:this.log.length?Math.min(...this.log.map(a=>a.time)):null,latestSuccessTime:success.length?Math.max(...success.map(e=>e.successTime)):null,score:Math.floor(this.score),energy:Math.round(this.energy),stars:this.stars,bestCombo:this.bestCombo,runSeconds:this.runTime,durationSeconds:this.time/1000,poseFpsAverage:average(this.performance.pose),renderFpsAverage:average(this.performance.render),poseFpsMinimum:this.performance.pose.length?Math.min(...this.performance.pose):null,events:this.events.map(e=>({...e,attempts:[...e.attempts]})),log:[...this.log]};
  }
 }

@@ -1,11 +1,11 @@
-import {RunCalibration} from '../motion/RunRhythm.js?v=chase20';
-import {drawTrackingOverlay} from '../ui/TrackingOverlay.js?v=chase20';
-import {ForestStage} from '../game/ForestStage.js?v=chase20';
-import {ForestView} from '../ui/ForestView.js?v=chase20';
-import {PromptView} from '../ui/PromptView.js?v=chase20';
-import {MotionDetector} from '../motion/MotionDetector.js?v=chase20';
+import {RunCalibration} from '../motion/RunRhythm.js?v=chase21';
+import {drawTrackingOverlay} from '../ui/TrackingOverlay.js?v=chase21';
+import {ForestStage} from '../game/ForestStage.js?v=chase21';
+import {ForestView} from '../ui/ForestView.js?v=chase21';
+import {PromptView} from '../ui/PromptView.js?v=chase21';
+import {MotionDetector} from '../motion/MotionDetector.js?v=chase21';
 import {neutral} from './self-test.js?v=body3';
-import {forestReportText} from '../ui/StageReport.js?v=chase20';
+import {forestReportText} from '../ui/StageReport.js?v=chase21';
 const $=id=>document.getElementById(id),view=new ForestView($('forestScene')),prompt=new PromptView($('promptStage'));
 let armMode=false,personalMode=false;
 let stage=new ForestStage(),detector=new MotionDetector(),last=null,paused=false,miss=false,poseTime=0;
@@ -19,10 +19,10 @@ function frame(now){drawTrackingOverlay($('previewCross'),{dataset:{},style:{}},
  if(stage.finished)$('previewReport').textContent=forestReportText(stage.report()).replace('森林試玩紀錄（本局實際偵測，不含合成預覽）','合成動作整局結果（非真人成功率；Pose FPS 尚無資料）');requestAnimationFrame(frame);}
 let accumulator=0;
 $('replay').onclick=()=>reset();$('miss').onclick=()=>reset(true);$('pause').onclick=()=>{paused=!paused;stage.pause(paused);$('pause').textContent=paused?'繼續':'暫停';};
-$('crate').onclick=()=>{reset();for(let i=0;i<175;i++)step();paused=true;stage.pause();$('pause').textContent='繼續';};
+$('crate').onclick=()=>{reset();while(stage.time<stage.events[1].previewStart)step();paused=true;stage.pause();$('pause').textContent='繼續';};
 $('finish').onclick=()=>{reset(miss,armMode,personalMode);for(let i=0;i<stage.duration/40;i++)step();};requestAnimationFrame(frame);
 
-$('jumpSuccess').onclick=()=>{reset();for(let i=0;i<190;i++)step();paused=true;stage.pause();$('pause').textContent='繼續';};
+$('jumpSuccess').onclick=()=>{reset();while(!stage.events[1].resolved)step();paused=true;stage.pause();$('pause').textContent='繼續';};
 
 $('armTest').onclick=()=>reset(false,true);
 

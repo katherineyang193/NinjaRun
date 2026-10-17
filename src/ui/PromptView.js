@@ -13,11 +13,11 @@ export class PromptView {
     const directCue=snapshot.forestPrompt&&promptState==='PREVIEW'&&currentPrompt!=='RUN';
     this.runProgress.hidden=snapshot.showRunProgress===false||paused||currentPrompt!=='RUN'||promptState!=='ACTIVE';
     this.runProgress.querySelector('progress').value=snapshot.runProgress??0;
-    const key=JSON.stringify([promptState,currentPrompt,nextPrompt,paused,combo,snapshot.waitingForCenter,snapshot.runBufferActive]);if(key===this.key)return;this.key=key;
+    const key=JSON.stringify([promptState,currentPrompt,nextPrompt,paused,combo,snapshot.waitingForCenter,snapshot.runBufferActive,snapshot.boss]);if(key===this.key)return;this.key=key;
     this.root.dataset.state=paused?'PAUSED':promptState;this.root.dataset.directCue="false";this.root.dataset.action=currentPrompt??'';
-    this.root.querySelector('.prompt-phase').textContent=paused?'回到框框裡～':snapshot.waitingForCenter?'先回中央':directCue?'':({PREVIEW:'準備',ACTIVE:snapshot.runBufferActive?'繼續跑！':'現在做！',SUCCESS:'NICE!',MISS:'再試試',RECOVERY:'站穩，慢慢來',FINISHED:'完成！',CRUISING:''})[promptState];
-    this.root.querySelector('.prompt-symbol').innerHTML=promptState==='SUCCESS'?'<span class="success-check">✓</span><span class="sparkles" aria-hidden="true">✦　✧　✦</span>':promptIcon(currentPrompt);
-    this.root.querySelector('.prompt-label').textContent=paused?'找到身體就繼續':promptState==='RECOVERY'?'站穩，等下一招':labels[currentPrompt]??'';
+    this.root.querySelector('.prompt-phase').textContent=paused?'回到框框裡～':snapshot.waitingForCenter?'先回中央':snapshot.boss&&promptState==='INTRO'?'森林胖胖王':promptState==='REST'?'逃出來了！':promptState==='POWER'?'忍者能量！':directCue?'':({PREVIEW:'準備',ACTIVE:snapshot.runBufferActive?'繼續跑！':'現在做！',SUCCESS:'NICE!',MISS:'再試試',RECOVERY:'站穩，慢慢來',FINISHED:'完成！',CRUISING:''})[promptState];
+    this.root.querySelector('.prompt-symbol').innerHTML=promptState==='SUCCESS'?'<span class="success-check">✓</span><span class="sparkles" aria-hidden="true">✦　✧　✦</span>':['INTRO','REST','POWER','FINISHED'].includes(promptState)?'<span class="success-check">'+(promptState==='POWER'?'✦':promptState==='REST'?'◎':'✓')+'</span>':promptIcon(currentPrompt);
+    this.root.querySelector('.prompt-label').textContent=paused?'找到身體就繼續':promptState==='REST'?'歇一下，Boss 要來了！':promptState==='INTRO'?'看箭頭，躲攻擊！':promptState==='POWER'?'旋風出發！':snapshot.boss&&promptState==='FINISHED'?'森林守護成功！':promptState==='RECOVERY'?'站穩，等下一招':labels[currentPrompt]??'';
     this.root.querySelector('.prompt-next').innerHTML=nextPrompt.map(a=>`<span aria-label="${labels[a]}">${promptIcon(a)}</span>`).join('');
     this.root.querySelector('.prompt-combo').textContent=combo>1?`COMBO ×${combo}`:'';
   }

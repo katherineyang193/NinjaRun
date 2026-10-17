@@ -1,10 +1,10 @@
-最新版本 CHASE-21：非RUN成功後完成900ms角色／障礙動畫，立即顯示下一招灰色100ms後亮燈，不再補足六秒空檔。RUN預備與判讀不變；20招全局最多120秒，成功越早全局越短。
+最新版本 BOSS-22：Phase 4B Boss Survival。森林維持 CHASE-21 節奏，逃出後喘息6秒，進入獨立Boss關卡（含必殺最多60秒）。
 
 # Ninja Run v0.1 · 小忍者衝衝衝
 
-目前版本 CHASE-19：Phase 4A 森林追逐。公開遊戲：https://katherineyang193.github.io/NinjaRun/?v=chase19
+目前版本 BOSS-22。公開遊戲：https://katherineyang193.github.io/NinjaRun/?v=boss22
 
-Windows 11 + Chrome / Edge + Webcam；GitHub Pages 純靜態網站。一般玩家不需安裝軟體。原創角色與森林怪獸，沒有 Boss、帳號或排行榜。
+Windows 11 + Chrome / Edge + Webcam；GitHub Pages 純靜態網站。一般玩家不需安裝軟體。原創角色與森林怪獸，沒有帳號或排行榜。
 
 ## 玩法
 
@@ -38,4 +38,9 @@ npm start
 
 既有Repository katherineyang193/NinjaRun、main分支、GitHub Pages根目錄發布，保留.nojekyll與既有Motion checks。先npm test，再commit／push；不得force push。模型使用固定版本CDN，模型快取不進Git。
 
-合成預覽：src/dev/forest-preview.html，清楚標示CAMERA OFF，支援追逐登場、Catch、全MISS與追逐OFF。自動測試不代表真人成功率；Easy與Normal的真人自然度、Camera／RUN校正、Pose FPS仍需使用者站在全身入鏡距離驗收。Phase4A交付後停止，不進入Boss。
+合成預覽：src/dev/forest-preview.html，清楚標示CAMERA OFF，支援追逐登場、Catch、全MISS與追逐OFF。自動測試不代表真人成功率；Easy與Normal的真人自然度、Camera／RUN校正、Pose FPS仍需使用者站在全身入鏡距離驗收。Phase4B交付後停止，不進入Phase5。
+
+## Boss Survival
+Boss使用既有跳、蹲、左右閃四種動作，沒有新Pose動作、HP或攻擊姿勢。玩家閃避讓森林胖胖王累壞，完成9招主回合；未達標最多加賽2招，再以溫和退場完成。能量與疲勞達標後自動旋風必殺，不需要第六種動作。
+AdventureStage負責森林→喘息→Boss→結果，BossStage只消費原MotionDetector輸出。BossView使用既有ForestView畫布與Render loop。
+[Phase4B規格與驗收](docs/PHASE4B.md) · [CAMERA OFF / SYNTHETIC TEST](src/dev/boss-preview.html?v=boss22)

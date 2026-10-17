@@ -1,23 +1,24 @@
-import {RunCalibration} from './motion/RunRhythm.js?v=chase21';
+import {RunCalibration} from './motion/RunRhythm.js?v=boss22';
 import {CameraManager,cameraErrorMessage} from './camera/CameraManager.js';
 import {PoseManager} from './pose/PoseManager.js';
-import {SettingsManager} from './settings/SettingsManager.js?v=chase21';
+import {SettingsManager} from './settings/SettingsManager.js?v=boss22';
 import {MirrorController} from './motion/MirrorController.js';
 import {CalibrationManager} from './motion/CalibrationManager.js';
-import {PlayerCoordinateMapper} from './motion/PlayerCoordinateMapper.js?v=chase21';
+import {PlayerCoordinateMapper} from './motion/PlayerCoordinateMapper.js?v=boss22';
 import {TrackingManager} from './motion/TrackingManager.js';
-import {MotionDetector} from './motion/MotionDetector.js?v=chase21';
+import {MotionDetector} from './motion/MotionDetector.js?v=boss22';
 import {MotionProgress} from './motion/MotionProgress.js';
-import {poseFeatures} from './motion/pose-features.js?v=chase21';
-import {SpeechManager} from './audio/SpeechManager.js?v=chase21';
-import {AudioManager} from './audio/AudioManager.js?v=chase21';
-import {runSelfTest} from './dev/self-test.js?v=chase21';
-import {bodyTrackable,drawTrackingOverlay} from './ui/TrackingOverlay.js?v=chase21';
+import {poseFeatures} from './motion/pose-features.js?v=boss22';
+import {SpeechManager} from './audio/SpeechManager.js?v=boss22';
+import {AudioManager} from './audio/AudioManager.js?v=boss22';
+import {runSelfTest} from './dev/self-test.js?v=boss22';
+import {bodyTrackable,drawTrackingOverlay} from './ui/TrackingOverlay.js?v=boss22';
 import {PromptSequence} from './game/PromptSequence.js?v=run2';
-import {PromptView} from './ui/PromptView.js?v=chase21';
-import {ForestStage} from './game/ForestStage.js?v=chase21';
-import {forestDebugText,forestReportText} from './ui/StageReport.js?v=chase21';
-import {ForestView} from './ui/ForestView.js?v=chase21';
+import {PromptView} from './ui/PromptView.js?v=boss22';
+import {AdventureStage} from './game/AdventureStage.js?v=boss22';
+import {bossReportText,bossDebugText} from './ui/BossReport.js?v=boss22';
+import {forestDebugText,forestReportText} from './ui/StageReport.js?v=boss22';
+import {ForestView} from './ui/ForestView.js?v=boss22';
 const $=id=>document.getElementById(id);
 const settings=new SettingsManager(),mirror=new MirrorController(settings),calibration=new CalibrationManager();
 const tracking=new TrackingManager(),detector=new MotionDetector(settings.value),audio=new AudioManager(settings);
@@ -48,7 +49,7 @@ function release(){speech.reset();$('forestScene').hidden=true;$('guidedBtn').hi
   $('dojo').classList.remove('calibrating');motion={state:'CENTER',runState:'IDLE',runIntensity:0,events:[]};}
 function fail(text){release();phase='ERROR';$('phaseLabel').textContent='LET’S TRY AGAIN';message(text,'準備好後，再按一次開啟鏡頭。');$('startBtn').textContent='再試一次開啟鏡頭 →';}
 async function start(mode='forest'){playMode=mode;
-  release();$('guidedBtn').hidden=true;$('freeBtn').hidden=true;forest=playMode==='forest'?new ForestStage(settings.value):null;forestView.reset();lastForestReport=null;$('stageReport').hidden=true;sequence=new PromptSequence(settings.value);lastMotionTime=null;lastPromptState=null;runCalibration.reset();runCalibrationRetries=0;detector.setRunProfile(null);const token=epoch;phase='LOADING';elapsed=0;runTime=0;recent={};progress.reset();
+  release();$('guidedBtn').hidden=true;$('freeBtn').hidden=true;forest=playMode==='forest'?new AdventureStage({...settings.value,scriptIndex:Math.floor(Math.random()*2)}):null;forestView.reset();lastForestReport=null;$('stageReport').hidden=true;sequence=new PromptSequence(settings.value);lastMotionTime=null;lastPromptState=null;runCalibration.reset();runCalibrationRetries=0;detector.setRunProfile(null);const token=epoch;phase='LOADING';elapsed=0;runTime=0;recent={};progress.reset();
   $('summary').hidden=true;$('startBtn').hidden=true;$('stopBtn').hidden=false;$('phaseLabel').textContent='LET’S GET READY';message('正在開啟鏡頭…','瀏覽器會詢問相機權限。');
   await audio.unlock();speech.say('準備出發！');if(token!==epoch)return;
   let loadingTimer;
@@ -116,14 +117,14 @@ function processPose(lm,now){
       clearTimeout(feedbackTimer);feedbackTimer=setTimeout(()=>{$('feedback').textContent='';},650);}
   }
 }
-function forestFeedback(){for(const n of forest.drainNotices()){if(n.result==='SUCCESS'){progress.recordResults([n]);audio.play(n.type);}else if(n.result==='STAR')audio.play('star');else if(n.result==='HIT')audio.play('softHit');else if(n.result==='CATCH')audio.play('catch');else if(n.result==='CHASE_ENTER')audio.play('monster');}}
-function finish(){if(playMode==='forest'){lastForestReport=forest.report();$('stageReport').hidden=false;$('stageReport').textContent=forestReportText(lastForestReport);}
+function forestFeedback(){for(const n of forest.drainNotices()){if(n.result==='SUCCESS'){progress.recordResults([n]);audio.play(n.type);}else if(n.result==='STAR')audio.play('star');else if(n.result==='HIT')audio.play('softHit');else if(n.result==='CATCH')audio.play('catch');else if(n.result==='CHASE_ENTER')audio.play('monster');else if(n.result==='ESCAPE'){speech.reset();audio.play('finish');}else if(['BOSS_INTRO','BOSS_TELEGRAPH','GROUND_WAVE','LEAF_SWEEP','LEFT_IMPACT','RIGHT_IMPACT','BOSS_TIRED','ENERGY_READY','POWER','VICTORY'].includes(n.result))audio.play(n.result);}}
+function finish(){if(playMode==='forest'){lastForestReport=forest.report();$('stageReport').hidden=false;$('stageReport').textContent=forestReportText(lastForestReport)+(lastForestReport.boss?'\n\n'+bossReportText(lastForestReport.boss):'');}
 const promptReport=playMode==='guided'?sequence.report():null;const report={...progress.counts,elapsed,runTime};release();phase='FINISHED';completions++;
   $('summary').hidden=false;$('summary').querySelector('h2').textContent=lastForestReport?'森林冒險完成！ ✦':'動作練習完成！ ✦';$('summaryText').textContent=`動動時間 ${Math.round(report.elapsed)} 秒　·　跑動 ${Math.round(report.runTime)} 秒　·　跳躍 ${report.JUMP} 次　·　蹲下 ${report.CROUCH} 次　·　閃避 ${report.DODGE_LEFT+report.DODGE_RIGHT} 次。超級有活力！`;
   if(promptReport)$('summaryText').textContent+=' 提示挑戰：'+promptReport.map(r=>`${actionLabels[r.action]} ${r.successes}/${r.attempts}（${r.rate===null?'未出題':r.rate+'%'}）`).join(' · ')+`；最高 Combo ${sequence.bestCombo}。`;
   if(lastForestReport)$('summaryText').textContent=`森林冒險完成！ ${Math.round(lastForestReport.durationSeconds)} 秒 · Score ${lastForestReport.score} · 星星 ${lastForestReport.stars} · 活力值 ${lastForestReport.energy} · 跑動 ${lastForestReport.runSeconds.toFixed(1)} 秒 · 最高 Combo ${lastForestReport.bestCombo}。`+' 動作成功率：'+lastForestReport.actions.map(r=>`${actionLabels[r.action]} ${r.successes}/${r.attempts}（${r.rate===null?'未出題':r.rate+'%'}）`).join(' · ');
-  if(lastForestReport)$('summaryText').textContent+=' · 提示區段：左右閃 48秒／跳蹲 48秒／跑步 24秒（40%／40%／20%）。';
-  if(lastForestReport?.chase.enabled){$('forestScene').hidden=false;document.body.dataset.mode='forest';forestView.update(forest.snapshot(),performance.now()+100,pose.fps);$('summary').querySelector('h2').textContent='逃出來了！ ✦';$('summaryText').textContent+=' · 被追上 '+lastForestReport.chase.catchCount+' 次';}audio.play('finish');speech.say(lastForestReport?.chase.enabled?'逃出來了！':'森林冒險完成！');message(lastForestReport?'森林冒險完成！':'動作練習完成！','準備好了，就可以再練一次。');$('phaseLabel').textContent='NICE MOVES, NINJA!';
+  if(lastForestReport)$('summaryText').textContent+=' · 被追上 '+lastForestReport.chase.catchCount+' 次';
+  if(lastForestReport?.boss){const b=lastForestReport.boss;$('summaryText').textContent+=`。Boss：成功 ${b.success}／失誤 ${b.miss} · 最高 Combo ${b.bestCombo} · `+b.actions.map(a=>`${actionLabels[a.action]} ${a.successes}/${a.attempts}`).join(' · ')+`。總動動時間 ${Math.round(lastForestReport.totalDurationSeconds)} 秒 · ⭐⭐⭐ 超級忍者！`; $('summary').querySelector('h2').textContent='森林守護成功！ ✦';}else if(lastForestReport?.chase.enabled){$('forestScene').hidden=false;document.body.dataset.mode='forest';forestView.update(forest.snapshot(),performance.now()+100,pose.fps);$('summary').querySelector('h2').textContent='逃出來了！ ✦';$('summaryText').textContent+=' · 被追上 '+lastForestReport.chase.catchCount+' 次';}audio.play('finish');speech.say(lastForestReport?.boss?'森林守護成功！':lastForestReport?.chase.enabled?'逃出來了！':'森林冒險完成！');message(lastForestReport?.boss?'森林守護成功！':lastForestReport?'森林冒險完成！':'動作練習完成！','準備好了，就可以再練一次。');$('phaseLabel').textContent='NICE MOVES, NINJA!';
   if(completions>=3){phase='REST';message('休息一下，喝口水！','休息好了，按下面的按鈕再繼續。');$('startBtn').hidden=true;$('guidedBtn').hidden=true;$('freeBtn').hidden=true;$('continueBtn').hidden=false;}
 }
 function drawSkeleton(){
@@ -167,7 +168,7 @@ function frame(now){
       `Player right raw sign: ${mapper?.calibration.playerRightSign??'—'}   Player X: ${v(motion.features?.playerX)}`,
       `trackingState: ${trackingPaused?'LOST_TRACKING':'TRACKING'}   phase: ${phase}`,
       ...(sequence&&playMode==='guided'?[`promptState: ${sequence.state}   currentPrompt: ${sequence.snapshot().currentPrompt}   nextPrompt: ${sequence.snapshot().nextPrompt.join(',')}`,`promptStartTime: ${sequence.snapshot().promptStartTime}ms   activeWindow: ${sequence.snapshot().activeWindow.join('–')}ms`, `motionDetected: ${sequence.motionDetected??'—'}   successTimestamp: ${sequence.successTimestamp??'—'}ms`, `RUN progress: ${sequence.runHeld.toFixed(0)}/1000ms   missed sample gap: ${sequence.runGap.toFixed(0)}ms`]:[]),
-      ...(forest&&playMode==='forest'?[forestDebugText(forest.snapshot(),forestView),`Scene FPS: ${forestView.fps.toFixed(1)}   Canvas cost: ${forestView.lastCost.toFixed(2)}ms`]:[]),
+      ...(forest&&playMode==='forest'?[forest.snapshot().boss?bossDebugText(forest.snapshot()):forestDebugText(forest.snapshot(),forestView),`Scene FPS: ${forestView.fps.toFixed(1)}   Canvas cost: ${forestView.lastCost.toFixed(2)}ms`]:[]),
       Object.keys(names).map(a=>`${a}: ${progress.counts[a]}`).join('   '),settings.warning].filter(Boolean).join('\n');}
     drawSkeleton();
   }
@@ -195,7 +196,7 @@ $('modelTestBtn').addEventListener('click',async()=>{
 $('settingsBtn').addEventListener('click',()=>{for(const key of ['promptSize','mirrorMode','difficulty','duration','gameHomeUrl'])$(key).value=settings.value[key];
   speech.reset();$('voiceStatus').textContent=speech.status();for(const key of ['chaseEnabled','voiceHints','jumpEnabled','sound','music','rememberCalibration'])$(key).checked=settings.value[key];$('settingsWarning').textContent=settings.warning;$('settingsDialog').showModal();});
 $('saveSettings').addEventListener('click',()=>{const patch={};for(const key of ['promptSize','mirrorMode','difficulty','duration','gameHomeUrl'])patch[key]=$(key).value;
-  for(const key of ['voiceHints','jumpEnabled','sound','rememberCalibration'])patch[key]=$(key).checked;settings.update(patch);speech.reset();applySettings();});
+  for(const key of ['chaseEnabled','voiceHints','jumpEnabled','sound','rememberCalibration'])patch[key]=$(key).checked;settings.update(patch);speech.reset();applySettings();});
 $('clearCalibration').addEventListener('click',()=>{settings.update({calibration:null});if(camera.active)recalibrate();$('settingsWarning').textContent='左右校正已清除，下次開始會重新確認。';});
 document.addEventListener('visibilitychange',()=>{lastRenderTime=null;if(document.hidden){speech.reset();runCalibration.pause();runSettleSince=null;forest?.pause();pose.stop();trackingPaused=true;tracking.reset();motion=detector.lost();}
   else if(camera.active&&['CALIBRATION','COUNTDOWN','PLAYING','RUN_CALIBRATION','RUN_SETTLE'].includes(phase)){lastPoseTime=performance.now();countdownAt=null;pose.start($('cameraVideo'));}});

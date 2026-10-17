@@ -33,3 +33,7 @@ Dodge須回CENTER連續160ms才進入ACTIVE，沿用ForestStage中心條件。�
 Boss採簡化原創Canvas美術；動畫時間固定，不使用骨骼模型。無本機中文voice時只播提示音。中心久未回復會以溫和結尾完成；此時可能少於9個實際攻擊，SKIPPED保留於事件紀錄。手機仍非主要驗收裝置。資料僅本局記憶體，不上傳。
 
 Phase4B完成後停止，未開發Phase5。
+
+## 公開版自動驗證（2026-10-17）
+136項測試通過（既有116＋Boss20）。公開頁全成功9/9、全MISS0/11但完成、Jump Disabled蹲5/5左右各2/2、森林→Boss合成完整流程完成，Console無致命錯誤。成功46.5秒／全MISS55.5秒；均只觸發一次退場。合成Scene代表樣本約26～29FPS、Canvas約0.4～1.7ms，跳時／背景節流影響樣本；不是真人Pose FPS。
+公開正式入口已驗證CAMERA ON、WORKER與CALIBRATION，未有人入鏡時Pose約20.6～21.9FPS、Render約54～60FPS；完成後關閉相機。首次模型獨立probe曾失敗，但隨後實際相機模型初始化與持續推論成功，冷啟動穩定性仍列真人複測。此數據不是Boss真人FPS。

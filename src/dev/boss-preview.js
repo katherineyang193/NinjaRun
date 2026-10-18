@@ -1,11 +1,11 @@
-import {BossStage} from '../game/BossStage.js?v=boss22';
-import {AdventureStage} from '../game/AdventureStage.js?v=boss22';
-import {ForestView} from '../ui/ForestView.js?v=boss22';
-import {PromptView} from '../ui/PromptView.js?v=boss22';
+import {BossStage} from '../game/BossStage.js?v=boss23';
+import {AdventureStage} from '../game/AdventureStage.js?v=boss23';
+import {ForestView} from '../ui/ForestView.js?v=boss23';
+import {PromptView} from '../ui/PromptView.js?v=boss23';
 import {MotionDetector} from '../motion/MotionDetector.js';
 import {neutral} from './self-test.js';
-import {bossReportText,bossDebugText} from '../ui/BossReport.js?v=boss22';
-import {AudioManager} from '../audio/AudioManager.js?v=boss22';
+import {bossReportText,bossDebugText} from '../ui/BossReport.js?v=boss23';
+import {AudioManager} from '../audio/AudioManager.js?v=boss23';
 import {SpeechManager} from '../audio/SpeechManager.js';
 import {SettingsManager} from '../settings/SettingsManager.js';
 const $=id=>document.getElementById(id),view=new ForestView($('forestScene')),prompt=new PromptView($('promptStage')),settings=new SettingsManager(),audio=new AudioManager(settings),speech=new SpeechManager(settings);

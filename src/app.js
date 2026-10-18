@@ -1,24 +1,24 @@
-import {RunCalibration} from './motion/RunRhythm.js?v=boss22';
+import {RunCalibration} from './motion/RunRhythm.js?v=boss23';
 import {CameraManager,cameraErrorMessage} from './camera/CameraManager.js';
 import {PoseManager} from './pose/PoseManager.js';
-import {SettingsManager} from './settings/SettingsManager.js?v=boss22';
+import {SettingsManager} from './settings/SettingsManager.js?v=boss23';
 import {MirrorController} from './motion/MirrorController.js';
 import {CalibrationManager} from './motion/CalibrationManager.js';
-import {PlayerCoordinateMapper} from './motion/PlayerCoordinateMapper.js?v=boss22';
+import {PlayerCoordinateMapper} from './motion/PlayerCoordinateMapper.js?v=boss23';
 import {TrackingManager} from './motion/TrackingManager.js';
-import {MotionDetector} from './motion/MotionDetector.js?v=boss22';
+import {MotionDetector} from './motion/MotionDetector.js?v=boss23';
 import {MotionProgress} from './motion/MotionProgress.js';
-import {poseFeatures} from './motion/pose-features.js?v=boss22';
-import {SpeechManager} from './audio/SpeechManager.js?v=boss22';
-import {AudioManager} from './audio/AudioManager.js?v=boss22';
-import {runSelfTest} from './dev/self-test.js?v=boss22';
-import {bodyTrackable,drawTrackingOverlay} from './ui/TrackingOverlay.js?v=boss22';
+import {poseFeatures} from './motion/pose-features.js?v=boss23';
+import {SpeechManager} from './audio/SpeechManager.js?v=boss23';
+import {AudioManager} from './audio/AudioManager.js?v=boss23';
+import {runSelfTest} from './dev/self-test.js?v=boss23';
+import {bodyTrackable,drawTrackingOverlay} from './ui/TrackingOverlay.js?v=boss23';
 import {PromptSequence} from './game/PromptSequence.js?v=run2';
-import {PromptView} from './ui/PromptView.js?v=boss22';
-import {AdventureStage} from './game/AdventureStage.js?v=boss22';
-import {bossReportText,bossDebugText} from './ui/BossReport.js?v=boss22';
-import {forestDebugText,forestReportText} from './ui/StageReport.js?v=boss22';
-import {ForestView} from './ui/ForestView.js?v=boss22';
+import {PromptView} from './ui/PromptView.js?v=boss23';
+import {AdventureStage} from './game/AdventureStage.js?v=boss23';
+import {bossReportText,bossDebugText} from './ui/BossReport.js?v=boss23';
+import {forestDebugText,forestReportText} from './ui/StageReport.js?v=boss23';
+import {ForestView} from './ui/ForestView.js?v=boss23';
 const $=id=>document.getElementById(id);
 const settings=new SettingsManager(),mirror=new MirrorController(settings),calibration=new CalibrationManager();
 const tracking=new TrackingManager(),detector=new MotionDetector(settings.value),audio=new AudioManager(settings);
@@ -117,7 +117,7 @@ function processPose(lm,now){
       clearTimeout(feedbackTimer);feedbackTimer=setTimeout(()=>{$('feedback').textContent='';},650);}
   }
 }
-function forestFeedback(){for(const n of forest.drainNotices()){if(n.result==='SUCCESS'){progress.recordResults([n]);audio.play(n.type);}else if(n.result==='STAR')audio.play('star');else if(n.result==='HIT')audio.play('softHit');else if(n.result==='CATCH')audio.play('catch');else if(n.result==='CHASE_ENTER')audio.play('monster');else if(n.result==='ESCAPE'){speech.reset();audio.play('finish');}else if(['BOSS_INTRO','BOSS_TELEGRAPH','GROUND_WAVE','LEAF_SWEEP','LEFT_IMPACT','RIGHT_IMPACT','BOSS_TIRED','ENERGY_READY','POWER','VICTORY'].includes(n.result))audio.play(n.result);}}
+function forestFeedback(){for(const n of forest.drainNotices()){if(n.result==='SUCCESS'){progress.recordResults([n]);audio.play(n.type);}else if(n.result==='STAR')audio.play('star');else if(n.result==='HIT')audio.play('softHit');else if(n.result==='CATCH')audio.play('catch');else if(n.result==='CHASE_ENTER')audio.play('monster');else if(n.result==='ESCAPE'){speech.reset();audio.play('finish');}else if(['COUNTER_THROW','COUNTER_HIT','BOSS_INTRO','BOSS_TELEGRAPH','GROUND_WAVE','LEAF_SWEEP','LEFT_IMPACT','RIGHT_IMPACT','BOSS_TIRED','ENERGY_READY','POWER','VICTORY'].includes(n.result))audio.play(n.result);}}
 function finish(){if(playMode==='forest'){lastForestReport=forest.report();$('stageReport').hidden=false;$('stageReport').textContent=forestReportText(lastForestReport)+(lastForestReport.boss?'\n\n'+bossReportText(lastForestReport.boss):'');}
 const promptReport=playMode==='guided'?sequence.report():null;const report={...progress.counts,elapsed,runTime};release();phase='FINISHED';completions++;
   $('summary').hidden=false;$('summary').querySelector('h2').textContent=lastForestReport?'森林冒險完成！ ✦':'動作練習完成！ ✦';$('summaryText').textContent=`動動時間 ${Math.round(report.elapsed)} 秒　·　跑動 ${Math.round(report.runTime)} 秒　·　跳躍 ${report.JUMP} 次　·　蹲下 ${report.CROUCH} 次　·　閃避 ${report.DODGE_LEFT+report.DODGE_RIGHT} 次。超級有活力！`;

@@ -44,3 +44,6 @@ npm start
 Boss使用既有跳、蹲、左右閃四種動作，沒有新Pose動作、HP或攻擊姿勢。玩家閃避讓森林胖胖王累壞，完成9招主回合；未達標最多加賽2招，再以溫和退場完成。能量與疲勞達標後自動旋風必殺，不需要第六種動作。
 AdventureStage負責森林→喘息→Boss→結果，BossStage只消費原MotionDetector輸出。BossView使用既有ForestView畫布與Render loop。
 [Phase4B規格與驗收](docs/PHASE4B.md) · [CAMERA OFF / SYNTHETIC TEST](src/dev/boss-preview.html?v=boss22)
+
+## Phase 4B+ Boss 戰鬥演出升級
+BOSS-23：青藍忍者、木甲藤蔓Boss、森林符文決戰場；成功閃避自動反擊，Combo分四級飛刃，Boss後仰爆光，青白旋風終結。演出使用既有Boss時鐘，體感門檻與森林節奏不變。詳見 [Phase 4B 文件](docs/PHASE4B.md)。

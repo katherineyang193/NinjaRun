@@ -1,7 +1,7 @@
 import {bossCombat,drawCounter} from './BossCombat.js?v=boss23';
 /** Drawn into ForestView's existing canvas. No RAF, timers or pose work. */
 export function drawBossArena(c,s,w,h){
- const combat=bossCombat(s);const t=s.time/1000,scale=Math.min(w*.003,h*.005),x=w*.39,y=h*.47;
+ const combat=bossCombat(s);c.save();if(combat.hit)c.translate(Math.sin(s.time/18)*3*combat.recoil,Math.cos(s.time/22)*2*combat.recoil);const t=s.time/1000,scale=Math.min(w*.003,h*.005),x=w*.39,y=h*.47;
  const sky=c.createLinearGradient(0,0,0,h);sky.addColorStop(0,'#1f496d');sky.addColorStop(1,'#b8e7ca');c.fillStyle=sky;c.fillRect(0,0,w,h);
  c.fillStyle='#537f74';for(let i=0;i<5;i++){c.fillRect(i*w*.16,h*.12,w*.035,h*.6);c.beginPath();c.ellipse(i*w*.16,h*.18,w*.12,h*.22,0,0,Math.PI*2);c.fill();}
  c.fillStyle='#a5c6a0';c.fillRect(0,h*.7,w,h*.3);c.fillStyle='#e9d6ad';c.beginPath();c.ellipse(w*.32,h*.83,w*.35,h*.15,0,0,Math.PI*2);c.fill();
@@ -32,4 +32,5 @@ export function drawBossArena(c,s,w,h){
  const charge=Math.min(1,s.powerAge/1000);c.fillStyle='#bfffff';c.globalAlpha=.12*charge;c.beginPath();c.moveTo(w*.17,h*.8);c.lineTo(0,0);c.lineTo(w*.55,0);c.closePath();c.fill();c.globalAlpha=1;
  for(let j=0;j<3;j++){c.beginPath();c.ellipse(w*(.17+Math.min(1,s.powerAge/1800)*.2),h*.6,40+charge*w*.15,18+j*18,s.time/220+j,0,Math.PI*1.5);c.stroke();}
  const radius=30+Math.min(1,s.powerAge/1600)*w*.25;c.beginPath();c.ellipse(w*.24,h*.65,radius,radius*.35,-.3,0,Math.PI*2);c.stroke();c.font='bold 28px sans-serif';c.fillStyle='#ffe46b';for(let i=0;i<12;i++)c.fillText('✦',w*(.05+i*.047),h*(.25+.35*((i*.13+t*.15)%1)));c.restore();}
+ c.restore();
 }
